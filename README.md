@@ -85,6 +85,8 @@ production transcription.
 
 ## 🚀 Install
 
+Requires OBS Studio 31.0+.
+
 ### Option A — GitHub Releases (today)
 
 1. Head to the [latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) and grab:
