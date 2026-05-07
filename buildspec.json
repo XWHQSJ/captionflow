@@ -43,13 +43,13 @@
     },
     "platformConfig": {
         "macos": {
-            "bundleId": "com.obsproject.obs-ai-caption"
+            "bundleId": "io.github.xwhqsj.captionflow"
         }
     },
-    "name": "obs-ai-caption",
-    "displayName": "AI Captions",
+    "name": "captionflow",
+    "displayName": "CaptionFlow",
     "version": "0.1.0",
-    "author": "obs-ai-caption contributors",
+    "author": "CaptionFlow contributors",
     "website": "https://github.com/XWHQSJ/obs-ai-caption",
     "email": "xwhqsj@gmail.com"
 }

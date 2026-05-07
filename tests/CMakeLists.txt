@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(obs-ai-caption-tests LANGUAGES CXX)
+project(captionflow-tests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,7 @@ set(_CORE_SOURCES
 
 enable_testing()
 
-add_executable(obs-ai-caption-tests
+add_executable(captionflow-tests
   ${_CORE_SOURCES}
   test-main.cpp
   subtitle-manager-test.cpp
@@ -33,17 +33,17 @@ add_executable(obs-ai-caption-tests
   model-finder-test.cpp
 )
 
-target_include_directories(obs-ai-caption-tests PRIVATE
+target_include_directories(captionflow-tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../src
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(MSVC)
-  target_compile_options(obs-ai-caption-tests PRIVATE /W4 /utf-8 /permissive-)
-  target_compile_definitions(obs-ai-caption-tests PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_compile_options(captionflow-tests PRIVATE /W4 /utf-8 /permissive-)
+  target_compile_definitions(captionflow-tests PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
-  target_compile_options(obs-ai-caption-tests PRIVATE -Wall -Wextra -Wpedantic)
-  target_link_libraries(obs-ai-caption-tests PRIVATE pthread)
+  target_compile_options(captionflow-tests PRIVATE -Wall -Wextra -Wpedantic)
+  target_link_libraries(captionflow-tests PRIVATE pthread)
 endif()
 
-add_test(NAME obs-ai-caption-tests COMMAND obs-ai-caption-tests)
+add_test(NAME captionflow-tests COMMAND captionflow-tests)

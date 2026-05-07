@@ -141,7 +141,7 @@ endif()
 # ---- Tests (offline, no OBS/sherpa-onnx) ----
 if(ENABLE_TESTS)
   enable_testing()
-  add_executable(obs-ai-caption-tests
+  add_executable(captionflow-tests
     ${_CORE_SOURCES}
     tests/test-main.cpp
     tests/subtitle-manager-test.cpp
@@ -151,10 +151,10 @@ if(ENABLE_TESTS)
     tests/audio-delay-buffer-test.cpp
     tests/model-finder-test.cpp
   )
-  target_include_directories(obs-ai-caption-tests PRIVATE
+  target_include_directories(captionflow-tests PRIVATE
     ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
   if(NOT WIN32)
-    target_link_libraries(obs-ai-caption-tests PRIVATE pthread)
+    target_link_libraries(captionflow-tests PRIVATE pthread)
   endif()
-  add_test(NAME obs-ai-caption-tests COMMAND obs-ai-caption-tests)
+  add_test(NAME captionflow-tests COMMAND captionflow-tests)
 endif()
