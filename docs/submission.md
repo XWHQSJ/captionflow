@@ -1,4 +1,4 @@
-# Submission kits for AI Captions (obs-ai-caption)
+# Submission kits for CaptionFlow
 
 Templates for each public distribution channel.
 
@@ -26,8 +26,8 @@ reaches core maintainers directly and has **no account-age or 2FA
 restriction**. The announcement template we use:
 
 ```
-Hey folks — just shipped **obs-ai-caption** v0.1.0, an MIT-licensed,
-on-device streaming ASR plugin for OBS Studio.
+Hey folks — just shipped **CaptionFlow** v0.1.0, an MIT-licensed,
+on-device streaming ASR captioning plugin for OBS Studio.
 
 • Windows x64 + macOS universal builds (Sigstore attested)
 • Bilingual 中文/English Zipformer from sherpa-onnx

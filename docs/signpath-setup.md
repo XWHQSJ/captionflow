@@ -11,13 +11,13 @@ the CI integration is already stubbed out on our side.
 
    | Field | Value |
    | --- | --- |
-   | Project Name | `obs-ai-caption` |
+   | Project Name | `CaptionFlow` |
    | Repository URL | `https://github.com/XWHQSJ/obs-ai-caption` |
    | Homepage URL | `https://github.com/XWHQSJ/obs-ai-caption` |
-   | Download URL | `https://github.com/XWHQSJ/obs-ai-caption/releases/latest` (mentions SignPath Foundation ✓) |
+   | Download URL | `https://github.com/XWHQSJ/obs-ai-caption/releases/latest` |
    | Privacy Policy URL | *leave blank — plugin collects no data* |
    | Wikipedia URL | *blank* |
-   | Tagline | `Free, on-device streaming AI captions for OBS Studio` |
+   | Tagline | `Free, on-device streaming captions for OBS Studio` |
    | Description | `Real-time streaming ASR captions for OBS Studio powered by sherpa-onnx, with an adaptive-beep sensitive-word mute filter. Runs fully on-device; no cloud, no API keys. MIT licensed, bilingual Chinese + English.` |
    | Maintainer Type | `Individual maintainer` |
    | Build System | `GitHub Actions` |
@@ -49,7 +49,7 @@ Once your project is listed on <https://signpath.org/projects>, we can
 swap the plain "unsigned" notice in README for:
 
 ```md
-[![Signed by SignPath Foundation](https://signpath.org/assets/favicon.ico) Windows builds signed by SignPath Foundation for open source](https://signpath.org/projects/obs-ai-caption)
+[![Signed by SignPath Foundation](https://signpath.org/assets/favicon.ico) Windows builds signed by SignPath Foundation for open source](https://signpath.org/projects/captionflow)
 ```
 
 Following the SignPath Foundation brand guidelines in their onboarding docs.

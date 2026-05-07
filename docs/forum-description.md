@@ -1,4 +1,4 @@
-# AI Captions — on-device streaming ASR captions for OBS
+# CaptionFlow — on-device streaming ASR captions for OBS Studio
 
 > Free, offline, bilingual (English + 中文) AI captions with sensitive-word mute.
 
@@ -6,7 +6,7 @@
 
 ## Why this plugin?
 
-| Traditional caption plugins | **AI Captions** |
+| Traditional caption plugins | **CaptionFlow** |
 | --- | --- |
 | Send audio to Google / Azure / AWS | **100% on-device** streaming ASR |
 | Pay per minute of transcription | **Free forever** — MIT open-source |
@@ -44,13 +44,13 @@ Download from the [GitHub release](https://github.com/XWHQSJ/obs-ai-caption/rele
 Verify the binary came out of our public CI run (optional):
 
 ```bash
-gh attestation verify obs-ai-caption-0.1.0-macos-universal.pkg \
+gh attestation verify captionflow-0.1.0-macos-universal.pkg \
   --repo XWHQSJ/obs-ai-caption
 ```
 
 ## First use (60 seconds)
 
-1. Right-click an audio source → **Filters** → **+** → **AI Captions**.
+1. Right-click an audio source → **Filters** → **+** → **CaptionFlow**.
 2. Click **Download Model…** and pick a preset.
 3. Set **Caption Output File** to somewhere like `/tmp/captions.txt`.
 4. Add a `Text (GDI+)` / `Text (FreeType 2)` source → enable **Read from file** → point at the same path.

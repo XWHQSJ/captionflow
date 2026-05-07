@@ -26,14 +26,20 @@ import readline from 'readline';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
+if (process.env.CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT !== '1') {
+  console.error('OBS forum submission automation is disabled. Distribution remains GitHub Releases unless policy approval is confirmed.');
+  console.error('Set CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT=1 only after a separate approval decision.');
+  process.exit(1);
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 
 const forumDesc = readFileSync(resolve(repoRoot, 'docs/forum-description.md'), 'utf8');
 
 const SUBMISSION_DATA = {
-  title: 'AI Captions — on-device streaming ASR with sensitive-word mute',
-  tagline: 'Free, offline, bilingual (EN + 中文) AI captions powered by sherpa-onnx',
+  title: 'CaptionFlow — on-device streaming ASR captions',
+  tagline: 'Free, offline, bilingual (EN + 中文) captions powered by sherpa-onnx',
   version: '0.1.0',
   external_url: 'https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0',
   description: forumDesc,
