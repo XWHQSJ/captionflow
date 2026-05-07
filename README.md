@@ -1,13 +1,12 @@
-# 🎙️ obs-ai-caption
+# 🎙️ CaptionFlow
 
-> **On-device, real-time AI captions for OBS Studio — no cloud, no API keys, no data leaves your machine.**
+> **On-device, real-time captions for OBS Studio — no cloud, no API keys, no data leaves your machine.**
 
 <p align="center">
   <a href="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml"><img alt="CI" src="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml/badge.svg"></a>
   <a href="https://github.com/XWHQSJ/obs-ai-caption/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XWHQSJ/obs-ai-caption?include_prereleases&sort=semver"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <a href="#-platforms"><img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-lightgrey"></a>
-  <a href="https://obsproject.com/"><img alt="OBS" src="https://img.shields.io/badge/OBS-31.0%2B-green"></a>
 </p>
 
 <p align="center">
@@ -15,14 +14,14 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.gif" alt="obs-ai-caption demo" width="720">
+  <img src="docs/screenshots/hero.gif" alt="CaptionFlow demo" width="720">
 </p>
 
 ---
 
 ## ✨ Why this plugin?
 
-| Existing caption plugins | obs-ai-caption |
+| Existing caption plugins | CaptionFlow |
 | --- | --- |
 | 🌐 Send audio to Google / Azure / AWS | 🔒 **100% on-device** streaming ASR |
 | 💸 Pay per minute of transcription | 💚 **Free forever** — open source, GPL-2.0 |
@@ -55,7 +54,7 @@ production transcription.
 
 - Pick English / bilingual / tiny preset inside the filter panel
 - Progress bar + SHA verification
-- Cached under `~/…/obs-studio/plugin_config/obs-ai-caption/`
+- Cached under `~/…/obs-studio/plugin_config/captionflow/`
 
 </td>
 </tr>
@@ -89,8 +88,8 @@ production transcription.
 ### Option A — GitHub Releases (today)
 
 1. Head to the [latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) and grab:
-   - Windows: `obs-ai-caption-<version>-windows-x64.zip`
-   - macOS:   `obs-ai-caption-<version>-macos-universal.pkg`
+   - Windows: `captionflow-<version>-windows-x64.zip`
+   - macOS:   `captionflow-<version>-macos-universal.pkg`
 2. **Windows** — extract the zip, merge `obs-plugins\` and `data\obs-plugins\`
    into `%ProgramFiles%\obs-studio\`.
 3. **macOS** — double-click the `.pkg`; it installs into
@@ -132,13 +131,13 @@ Until then, GitHub Releases is the canonical distribution channel.
 
 ```
   ┌───────────────┐   ┌─────────────────┐   ┌────────────────┐
-  │  Audio Source │   │  AI Captions    │   │ Text (GDI+)    │
+  │  Audio Source │   │  CaptionFlow    │   │ Text (GDI+)    │
   │  (mic / desk) │──▶│   Filter        │──▶│ Read from file │
   └───────────────┘   │   + Downloader  │   └────────────────┘
                       └─────────────────┘
 ```
 
-1. Right-click an audio source → **Filters → + → AI Captions**
+1. Right-click an audio source → **Filters → + → CaptionFlow**
 2. Click **Download Model…** and pick a preset
 3. Set **Caption Output File** to `/tmp/captions.txt` (or anywhere)
 4. Add a `Text (GDI+)` / `Text (FreeType 2)` source → enable

@@ -1,4 +1,4 @@
-# Contributing to obs-ai-caption
+# Contributing to CaptionFlow
 
 Thanks for your interest! This plugin is early-stage; all contributions are
 welcome — bug reports, feature requests, and pull requests alike.
