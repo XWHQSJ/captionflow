@@ -20,7 +20,6 @@
  *   npm i -g playwright
  *   (chromium is installed under ~/Library/Caches/ms-playwright)
  */
-import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
@@ -51,6 +50,7 @@ function promptEnter(msg) {
 }
 
 async function main() {
+  const { chromium } = await import('playwright');
   const userDataDir = process.env.OBS_FORUM_PROFILE || resolve(process.env.HOME, '.obs-forum-profile');
   console.log(`Launching Chromium with profile: ${userDataDir}`);
   const ctx = await chromium.launchPersistentContext(userDataDir, {
