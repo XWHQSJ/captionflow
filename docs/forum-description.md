@@ -1,15 +1,15 @@
-# CaptionFlow — on-device streaming ASR captions for OBS Studio
+# CaptionFlow
 
-> Free, offline, bilingual (English + 中文) AI captions with sensitive-word mute.
+> Third-party, on-device real-time captioning plugin for OBS Studio. Free, offline, bilingual (English + 中文), with sensitive-word mute.
 
-[GitHub](https://github.com/XWHQSJ/obs-ai-caption) · [Latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) · [Report issue](https://github.com/XWHQSJ/obs-ai-caption/issues) · MIT License
+[GitHub](https://github.com/XWHQSJ/obs-ai-caption) · [Latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) · [Report issue](https://github.com/XWHQSJ/obs-ai-caption/issues) · GPL-2.0-or-later
 
 ## Why this plugin?
 
 | Traditional caption plugins | **CaptionFlow** |
 | --- | --- |
 | Send audio to Google / Azure / AWS | **100% on-device** streaming ASR |
-| Pay per minute of transcription | **Free forever** — MIT open-source |
+| Pay per minute of transcription | **Free forever** — GPL-2.0-or-later open source |
 | Require a stable internet connection | Runs offline once the model is downloaded |
 | English-only, often | **Bilingual 中文 + English** out of the box |
 | No built-in profanity control | **Adaptive beep mute** that tracks the speaker's pitch |
@@ -67,10 +67,14 @@ gh attestation verify captionflow-0.1.0-macos-universal.pkg \
 ## Links & credits
 
 - **Source / issues**: https://github.com/XWHQSJ/obs-ai-caption
-- **License**: MIT
+- **License**: GPL-2.0-or-later
 - Built on:
   - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — Next-gen Kaldi team
   - [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate)
-  - [OBS Studio](https://github.com/obsproject/obs-studio)
+  - [OBS Studio](https://github.com/obsproject/obs-studio) plugin SDK
+
+CaptionFlow is a third-party plugin and is not developed by, endorsed by, or affiliated with the OBS Project.
+
+Development note: LLM tools were used as an assistant during development and documentation, with human review and validation before release.
 
 If this plugin saves you money on captioning, please star the repo and drop a thank-you to the sherpa-onnx team.

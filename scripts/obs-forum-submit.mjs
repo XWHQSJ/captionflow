@@ -37,7 +37,7 @@ const repoRoot = resolve(__dirname, '..');
 const forumDesc = readFileSync(resolve(repoRoot, 'docs/forum-description.md'), 'utf8');
 
 const SUBMISSION_DATA = {
-  title: 'CaptionFlow — on-device streaming ASR captions',
+  title: 'CaptionFlow',
   tagline: 'Free, offline, bilingual (EN + 中文) captions powered by sherpa-onnx',
   version: '0.1.0',
   external_url: 'https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0',

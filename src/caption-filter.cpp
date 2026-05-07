@@ -27,7 +27,7 @@ using namespace ai_caption::constants;
 /* -------------------------------------------------------- */
 
 #define do_log(level, format, ...) \
-	blog(level, "[AI Caption: '%s'] " format, obs_source_get_name(cf->context), ##__VA_ARGS__)
+	blog(level, "[CaptionFlow: '%s'] " format, obs_source_get_name(cf->context), ##__VA_ARGS__)
 
 #define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
 #define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
@@ -324,7 +324,7 @@ static void start_asr_async(caption_filter_data *cf)
 		AsrConfig config = snapshot;
 
 		if (!find_model_files(model_dir, config)) {
-			blog(LOG_WARNING, "[AI Caption] Cannot find model files in: %s",
+			blog(LOG_WARNING, "[CaptionFlow] Cannot find model files in: %s",
 			     model_dir.c_str());
 			cf->init_in_progress.store(false, std::memory_order_release);
 			return;
@@ -342,17 +342,17 @@ static void start_asr_async(caption_filter_data *cf)
 				on_asr_result(cf, text, is_partial, token_age_sec);
 			});
 
-		blog(LOG_INFO, "[AI Caption] Loading model from: %s (hotwords: %s)",
+		blog(LOG_INFO, "[CaptionFlow] Loading model from: %s (hotwords: %s)",
 		     model_dir.c_str(), has_hotwords ? "enabled" : "disabled");
 
 		if (!cf->engine.init(config)) {
-			blog(LOG_WARNING, "[AI Caption] Failed to initialize ASR engine");
+			blog(LOG_WARNING, "[CaptionFlow] Failed to initialize ASR engine");
 			cf->init_in_progress.store(false, std::memory_order_release);
 			return;
 		}
 
 		cf->init_in_progress.store(false, std::memory_order_release);
-		blog(LOG_INFO, "[AI Caption] ASR engine started (encoder=%s)",
+		blog(LOG_INFO, "[CaptionFlow] ASR engine started (encoder=%s)",
 		     config.encoder_path.c_str());
 	});
 }

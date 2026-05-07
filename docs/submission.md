@@ -4,10 +4,7 @@ Templates for each public distribution channel.
 
 ## 1. OBS Forum resource page
 
-Canonical location to publish the plugin once WizardCM (or another mod) grants
-your account resource-posting permission. The full, rendered description lives
-in [`docs/forum-description.md`](forum-description.md) and is pre-filled by
-`scripts/obs-forum-submit.mjs` (or the opencli flow) when you're ready.
+Use only after a separate policy review confirms the resource should be resubmitted. The full, rendered description lives in [`docs/forum-description.md`](forum-description.md) and is pre-filled by `scripts/obs-forum-submit.mjs` only when `CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT=1` is set.
 
 Upload order recommended:
 
@@ -16,8 +13,7 @@ Upload order recommended:
 3. Model-download dialog screenshot
 4. Sensitive-word mute demo (audio waveform before/after)
 
-Tags to set: `captions`, `transcription`, `accessibility`, `ai`, `sherpa-onnx`,
-`chinese`.
+Tags to set: `captions`, `transcription`, `accessibility`, `subtitles`, `sherpa-onnx`, `chinese`.
 
 ## 2. OBS Discord #plugin-dev
 
@@ -26,13 +22,14 @@ reaches core maintainers directly and has **no account-age or 2FA
 restriction**. The announcement template we use:
 
 ```
-Hey folks — just shipped **CaptionFlow** v0.1.0, an MIT-licensed,
+Hey folks — just shipped **CaptionFlow** v0.1.0, a GPL-2.0-or-later,
 on-device streaming ASR captioning plugin for OBS Studio.
 
 • Windows x64 + macOS universal builds (Sigstore attested)
 • Bilingual 中文/English Zipformer from sherpa-onnx
 • Adaptive-beep sensitive-word mute filter
 • One-click model download from the filter properties
+• Third-party plugin; not developed by, endorsed by, or affiliated with the OBS Project
 
 https://github.com/XWHQSJ/obs-ai-caption
 https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0

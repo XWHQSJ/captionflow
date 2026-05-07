@@ -80,10 +80,10 @@ bool AsrEngine::init(const AsrConfig &config)
 	try {
 		rec = SherpaOnnxCreateOnlineRecognizer(&c);
 	} catch (const std::exception &e) {
-		std::fprintf(stderr, "[AI Caption] CreateOnlineRecognizer failed: %s\n", e.what());
+		std::fprintf(stderr, "[CaptionFlow] CreateOnlineRecognizer failed: %s\n", e.what());
 		return false;
 	} catch (...) {
-		std::fprintf(stderr, "[AI Caption] CreateOnlineRecognizer failed: unknown exception\n");
+		std::fprintf(stderr, "[CaptionFlow] CreateOnlineRecognizer failed: unknown exception\n");
 		return false;
 	}
 
@@ -270,14 +270,14 @@ void AsrEngine::decode_thread_func()
 				decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
 			if (n <= 3 || (n % 100) == 0)
 				std::fprintf(stderr,
-					     "[AI Caption] sherpa-onnx decode exception: %s (total=%llu)\n",
+					     "[CaptionFlow] sherpa-onnx decode exception: %s (total=%llu)\n",
 					     e.what(), static_cast<unsigned long long>(n));
 		} catch (...) {
 			const uint64_t n =
 				decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
 			if (n <= 3 || (n % 100) == 0)
 				std::fprintf(stderr,
-					     "[AI Caption] sherpa-onnx decode unknown exception (total=%llu)\n",
+					     "[CaptionFlow] sherpa-onnx decode unknown exception (total=%llu)\n",
 					     static_cast<unsigned long long>(n));
 		}
 	}

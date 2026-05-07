@@ -72,5 +72,4 @@ Maintainer-only:
 
 ## License
 
-By contributing you agree to license your work under the same MIT
-as the project.
+By contributing you agree to license your work under the same GPL-2.0-or-later terms as the project.

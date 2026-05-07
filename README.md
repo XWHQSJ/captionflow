@@ -5,12 +5,12 @@
 <p align="center">
   <a href="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml"><img alt="CI" src="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml/badge.svg"></a>
   <a href="https://github.com/XWHQSJ/obs-ai-caption/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XWHQSJ/obs-ai-caption?include_prereleases&sort=semver"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg"></a>
   <a href="#-platforms"><img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-lightgrey"></a>
 </p>
 
 <p align="center">
-  <b>Streaming ASR &middot; Bilingual (EN + 中文) &middot; Sensitive-word beep &middot; GPU accel &middot; MIT-cheap runtime</b>
+  <b>Streaming ASR &middot; Bilingual (EN + 中文) &middot; Sensitive-word beep &middot; GPU acceleration &middot; GPL-2.0-or-later</b>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 | Existing caption plugins | CaptionFlow |
 | --- | --- |
 | 🌐 Send audio to Google / Azure / AWS | 🔒 **100% on-device** streaming ASR |
-| 💸 Pay per minute of transcription | 💚 **Free forever** — open source, GPL-2.0 |
+| 💸 Pay per minute of transcription | 💚 **Free forever** — open source, GPL-2.0-or-later |
 | 📡 Require a stable internet connection | ✈️ **Runs offline** once model is downloaded |
 | 🇬🇧 English-only, often | 🈷️ **中英双语** streaming Zipformer included |
 | 🎛️ No built-in profanity control | 🤫 **Adaptive beep mute** with per-speaker pitch |
@@ -101,7 +101,7 @@ Requires OBS Studio 31.0+.
 > ### 🛡️ About the unsigned release
 >
 > We don't yet hold Apple Developer ID or Windows Authenticode certificates
-> — both cost money that a free, MIT-licensed plugin shouldn't have to pay.
+> — both cost money that a free, GPL-2.0-or-later licensed plugin shouldn't have to pay.
 > Until we qualify for [SignPath Foundation](https://signpath.org) (free
 > Windows OSS signing) or a community-sponsored macOS identity, install
 > requires a one-time bypass:
@@ -252,13 +252,17 @@ tests, and open a pull request. Bug reports and feature requests go in
 
 ## 📜 License & credits
 
-Licensed under the **MIT License** — see [LICENSE](LICENSE).
+Licensed under **GPL-2.0-or-later** for OBS Studio plugin compatibility — see [LICENSE](LICENSE).
 
 Built on the work of:
 
-- [obsproject/obs-studio](https://github.com/obsproject/obs-studio) — the streaming suite itself
-- [obsproject/obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) — build-system scaffolding
-- [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — streaming ASR runtime
+- [OBS Studio](https://github.com/obsproject/obs-studio) — plugin host and SDK
+- [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) — build-system scaffolding
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — streaming ASR runtime
+
+CaptionFlow is a third-party plugin and is not developed by, endorsed by, or affiliated with the OBS Project.
+
+Development note: LLM tools were used as an assistant during development and documentation, with human review and validation before release.
 
 If this plugin saves you money on captioning, please consider starring the
 repo and dropping a thank-you to the sherpa-onnx team.
