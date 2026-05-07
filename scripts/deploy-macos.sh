@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Deploys the built obs-ai-caption.plugin into a locally built OBS.app.
+# Deploys the built captionflow.plugin into a locally built OBS.app.
 # Expects:
 #   OBS_APP=<path to OBS.app>  (e.g. /Users/.../obs-studio/build_macos/UI/RelWithDebInfo/OBS.app)
 #   PLUGIN_DIR=<path to plugin build dir> (defaults to build-plugin-macos)
@@ -13,25 +13,25 @@ if [[ ! -d "${OBS_APP}" ]]; then
   exit 1
 fi
 
-PLUGIN_BUNDLE="${PLUGIN_DIR}/obs-ai-caption.plugin"
+PLUGIN_BUNDLE="${PLUGIN_DIR}/captionflow.plugin"
 if [[ ! -d "${PLUGIN_BUNDLE}" ]]; then
   echo "Plugin bundle not found at ${PLUGIN_BUNDLE} — build first" >&2
   exit 1
 fi
 
 PLUGINS_DIR="${OBS_APP}/Contents/PlugIns"
-DATA_DIR="${OBS_APP}/Contents/Resources/data/obs-plugins/obs-ai-caption"
+DATA_DIR="${OBS_APP}/Contents/Resources/data/obs-plugins/captionflow"
 
 mkdir -p "${PLUGINS_DIR}" "${DATA_DIR}"
 
 echo "Copying plugin bundle..."
-rm -rf "${PLUGINS_DIR}/obs-ai-caption.plugin"
+rm -rf "${PLUGINS_DIR}/captionflow.plugin"
 cp -R "${PLUGIN_BUNDLE}" "${PLUGINS_DIR}/"
 
 echo "Copying data..."
 cp -R /Users/bytedance/Workspace/obs-ai-caption/data/. "${DATA_DIR}/"
 
 echo "Ad-hoc signing..."
-codesign --force --deep --sign - "${PLUGINS_DIR}/obs-ai-caption.plugin"
+codesign --force --deep --sign - "${PLUGINS_DIR}/captionflow.plugin"
 
-echo "Deployed to ${PLUGINS_DIR}/obs-ai-caption.plugin"
+echo "Deployed to ${PLUGINS_DIR}/captionflow.plugin"

@@ -127,10 +127,10 @@ jobs:
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORG_ID }}
-          project-slug: obs-ai-caption
+          project-slug: captionflow
           signing-policy-slug: release-signing
           artifact-configuration-slug: windows-zip
-          github-artifact-id: ${{ github.workspace }}/obs-ai-caption-${{ needs.build-project.outputs.pluginName && steps.check.outputs.version }}-windows-x64.zip
+          github-artifact-id: ${{ github.workspace }}/captionflow-${{ needs.build-project.outputs.pluginName && steps.check.outputs.version }}-windows-x64.zip
           wait-for-completion: true
           output-artifact-directory: ${{ github.workspace }}/signed
 

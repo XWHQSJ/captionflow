@@ -9,15 +9,15 @@
 #   bash scripts/unquarantine-macos.sh
 set -euo pipefail
 
-PLUGIN_PATHS=(
-  "$HOME/Library/Application Support/obs-studio/plugins/obs-ai-caption.plugin"
-  "/Library/Application Support/obs-studio/plugins/obs-ai-caption.plugin"
+PLUGIN_CANDIDATES=(
+  "$HOME/Library/Application Support/obs-studio/plugins/captionflow.plugin"
+  "/Library/Application Support/obs-studio/plugins/captionflow.plugin"
 )
 
-echo "Looking for obs-ai-caption.plugin..."
+echo "Looking for captionflow.plugin..."
 
 found=0
-for path in "${PLUGIN_PATHS[@]}"; do
+for path in "${PLUGIN_CANDIDATES[@]}"; do
   if [[ -d "$path" ]]; then
     echo "  -> $path"
     if [[ -w "$path" ]]; then
@@ -34,4 +34,4 @@ if [[ $found -eq 0 ]]; then
   exit 1
 fi
 
-echo "Done. Relaunch OBS; the AI Captions filter should now appear."
+echo "Done. Relaunch OBS Studio; the CaptionFlow filter should now appear."
