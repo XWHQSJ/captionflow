@@ -112,7 +112,7 @@ public:
 	DownloadDialog(QWidget *parent, std::string *out_dir)
 		: QDialog(parent), out_dir_(out_dir)
 	{
-		setWindowTitle(tr("AI Captions — Download ASR model"));
+		setWindowTitle(tr("CaptionFlow — Download ASR model"));
 		setModal(true);
 
 		auto *layout = new QVBoxLayout(this);

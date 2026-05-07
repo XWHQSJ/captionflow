@@ -1,6 +1,6 @@
 /*
-obs-ai-caption
-Copyright (C) 2026 obs-ai-caption contributors
+CaptionFlow
+Copyright (C) 2026 CaptionFlow contributors
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,11 +23,11 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
-OBS_MODULE_AUTHOR("obs-ai-caption contributors")
+OBS_MODULE_AUTHOR("CaptionFlow contributors")
 
 MODULE_EXPORT const char *obs_module_description(void)
 {
-	return "AI-powered real-time captions using sherpa-onnx streaming ASR.";
+	return "On-device real-time captions using sherpa-onnx streaming ASR.";
 }
 
 bool obs_module_load(void)
