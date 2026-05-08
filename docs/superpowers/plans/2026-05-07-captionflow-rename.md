@@ -16,7 +16,7 @@
 - `CMakeLists.txt` and `tests/CMakeLists.txt` own offline test executable and CTest target names.
 - `src/plugin-main.cpp`, `src/model-downloader.cpp`, and `data/locale/en-US.ini` own user-visible plugin names and author/module strings.
 - `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, and `docs/*.md` own public documentation and submission/signing copy.
-- `scripts/unquarantine-macos.sh`, `scripts/deploy-macos.sh`, and `.github/workflows/push.yaml` own release/package helper paths and CI artifact names.
+- `scripts/deploy-macos.sh` and `.github/workflows/push.yaml` own release/package helper paths and CI artifact names. `scripts/unquarantine-macos.sh` was later retired to avoid publishing OS-quarantine bypass guidance.
 - `scripts/obs-forum-submit.mjs` is OBS-resource submission automation and should be retired or made non-submitting so it does not encourage immediate resubmission.
 
 ## Task 1: Update build metadata and test target names
@@ -41,12 +41,12 @@ Change `buildspec.json` so these fields read exactly:
   "displayName": "CaptionFlow",
   "version": "0.1.0",
   "author": "CaptionFlow contributors",
-  "website": "https://github.com/XWHQSJ/obs-ai-caption",
+  "website": "https://github.com/XWHQSJ/captionflow",
   "email": "xwhqsj@gmail.com"
 }
 ```
 
-Keep the existing `dependencies` object unchanged. The website stays on the current repository URL until the repository is renamed separately.
+Keep the existing `dependencies` object unchanged.
 
 - [ ] **Step 2: Rename root CMake test executable references**
 
@@ -209,30 +209,13 @@ git commit -m "refactor: update CaptionFlow user-facing strings"
 ## Task 3: Update release scripts and CI artifact naming
 
 **Files:**
-- Modify: `scripts/unquarantine-macos.sh`
 - Modify: `scripts/deploy-macos.sh`
 - Modify: `.github/workflows/push.yaml:119-135`
+- Retired later: `scripts/unquarantine-macos.sh`
 
-- [ ] **Step 1: Update unquarantine helper paths and output**
+- [ ] **Step 1: Retire the unquarantine helper**
 
-In `scripts/unquarantine-macos.sh`, use `captionflow.plugin` paths and product text:
-
-```bash
-PLUGIN_CANDIDATES=(
-  "$HOME/Library/Application Support/obs-studio/plugins/captionflow.plugin"
-  "/Library/Application Support/obs-studio/plugins/captionflow.plugin"
-)
-
-echo "Looking for captionflow.plugin..."
-```
-
-Change the final success message to:
-
-```bash
-echo "Done. Relaunch OBS Studio; the CaptionFlow filter should now appear."
-```
-
-If the script contains a curl example pointing at the current repository, leave the URL unchanged until the repository is renamed separately.
+`script/unquarantine-macos.sh` was removed after policy review because public release materials should not include OS-quarantine bypass guidance.
 
 - [ ] **Step 2: Update local deploy helper**
 
@@ -278,7 +261,8 @@ Expected: no matches.
 Run:
 
 ```bash
-git add scripts/unquarantine-macos.sh scripts/deploy-macos.sh .github/workflows/push.yaml
+git add scripts/deploy-macos.sh .github/workflows/push.yaml
+git add -u scripts/unquarantine-macos.sh
 git commit -m "ci: rename release artifacts to CaptionFlow"
 ```
 
@@ -296,7 +280,9 @@ In `README.md`, make these replacements:
 ```markdown
 # 🎙️ CaptionFlow
 
-> **On-device, real-time captions for OBS Studio — no cloud, no API keys, no data leaves your machine.**
+> **Independent third-party plugin for OBS Studio that turns local audio into live captions on your machine.**
+>
+> CaptionFlow is not developed by, endorsed by, or affiliated with the OBS Project.
 ```
 
 Change the demo alt text to:
@@ -305,10 +291,10 @@ Change the demo alt text to:
 <img src="docs/screenshots/hero.gif" alt="CaptionFlow demo" width="720">
 ```
 
-Change the comparison table header to:
+Replace the original comparison table with qualified local-processing copy:
 
 ```markdown
-| Existing caption plugins | CaptionFlow |
+CaptionFlow keeps speech recognition local during use: your microphone or desktop audio is decoded by sherpa-onnx on your machine, and captions are written to a text file that OBS Studio can read. The first model download contacts the upstream model host; after that, captioning works offline with the cached model.
 ```
 
 Change the cache path line to:
@@ -398,8 +384,9 @@ In `docs/submission.md`, change the title to:
 Change Discord-style announcement text from old branding to:
 
 ```markdown
-Hey folks — just shipped **CaptionFlow** v0.1.0, an MIT-licensed,
-on-device streaming ASR captioning plugin for OBS Studio.
+Hi, I'd like to ask for a policy check before resubmitting CaptionFlow.
+
+CaptionFlow is an independent GPL-2.0-or-later plugin for OBS Studio that runs sherpa-onnx speech recognition locally and writes captions to a text file source.
 ```
 
 Keep current GitHub URLs unchanged until the repository is renamed separately.
@@ -410,25 +397,25 @@ In `docs/signpath-setup.md`, update the metadata table values to:
 
 ```markdown
 | Project Name | `CaptionFlow` |
-| Repository URL | `https://github.com/XWHQSJ/obs-ai-caption` |
-| Homepage URL | `https://github.com/XWHQSJ/obs-ai-caption` |
-| Download URL | `https://github.com/XWHQSJ/obs-ai-caption/releases/latest` |
-| Tagline | `Free, on-device streaming captions for OBS Studio` |
-| Description | `Real-time streaming ASR captions for OBS Studio powered by sherpa-onnx, with an adaptive-beep sensitive-word mute filter. Runs fully on-device; no cloud, no API keys. MIT licensed, bilingual Chinese + English.` |
+| Repository URL | `https://github.com/XWHQSJ/captionflow` |
+| Homepage URL | `https://github.com/XWHQSJ/captionflow` |
+| Download URL | `https://github.com/XWHQSJ/captionflow/releases/latest` |
+| Tagline | `Local bilingual captions powered by sherpa-onnx` |
+| Description | `Independent third-party captioning plugin for OBS Studio powered by sherpa-onnx. Speech recognition runs locally after model download; no API keys are required. GPL-2.0-or-later licensed, with English and Chinese/English model presets plus an optional sensitive-word mute filter.` |
 ```
 
 Change the SignPath badge link slug from `/projects/obs-ai-caption` to `/projects/captionflow`.
 
 - [ ] **Step 3: Rewrite forum description for archival use**
 
-In `docs/forum-description.md`, change the heading and comparison header to:
+In `docs/forum-description.md`, use a plain title, early third-party disclaimer, and qualified local-processing copy:
 
 ```markdown
-# CaptionFlow — on-device streaming ASR captions for OBS Studio
-```
+# CaptionFlow
 
-```markdown
-| Traditional caption plugins | **CaptionFlow** |
+> Independent third-party plugin for OBS Studio that turns local audio into live captions on your machine.
+>
+> CaptionFlow is not developed by, endorsed by, or affiliated with the OBS Project.
 ```
 
 Change first-use step to:
@@ -441,31 +428,22 @@ Change package example to:
 
 ```bash
 gh attestation verify captionflow-0.1.0-macos-universal.pkg \
-  --repo XWHQSJ/obs-ai-caption
+  --repo XWHQSJ/captionflow
 ```
 
-- [ ] **Step 4: Disable OBS forum auto-submit helper by default**
+- [ ] **Step 4: Replace OBS forum automation with manual field printer**
 
-At the top of `scripts/obs-forum-submit.mjs`, after imports, add:
-
-```js
-if (process.env.CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT !== '1') {
-  console.error('OBS forum submission automation is disabled. Distribution remains GitHub Releases unless policy approval is confirmed.');
-  console.error('Set CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT=1 only after a separate approval decision.');
-  process.exit(1);
-}
-```
-
-Update `SUBMISSION_DATA` to CaptionFlow wording:
+`scripts/obs-forum-submit.mjs` should only print copy/paste fields for manual review and submission:
 
 ```js
-const SUBMISSION_DATA = {
-  title: 'CaptionFlow — on-device streaming ASR captions',
-  tagline: 'Free, offline, bilingual (EN + 中文) captions powered by sherpa-onnx',
-  version: '0.1.0',
-  external_url: 'https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0',
-  description: forumDesc,
-};
+const fields = [
+  ['Title', 'CaptionFlow'],
+  ['Tag line', 'Local bilingual captions powered by sherpa-onnx'],
+  ['Version', '0.1.0'],
+  ['External URL', 'https://github.com/XWHQSJ/captionflow/releases/tag/0.1.0'],
+  ['Tags', 'captions, transcription, accessibility, subtitles, sherpa-onnx, chinese'],
+  ['Description', forumDesc],
+];
 ```
 
 - [ ] **Step 5: Run submission docs grep**
@@ -590,6 +568,6 @@ Validation:
 - <command>: <result>
 
 Notes:
-- GitHub repository URL still points to XWHQSJ/obs-ai-caption until separately renamed.
+- GitHub repository URL points to XWHQSJ/captionflow.
 - OBS resource directory was not resubmitted.
 ```

@@ -18,7 +18,7 @@ the CI integration is already stubbed out on our side.
    | Privacy Policy URL | *leave blank — plugin collects no data* |
    | Wikipedia URL | *blank* |
    | Tagline | `Free, on-device streaming captions for OBS Studio` |
-   | Description | `Third-party real-time streaming ASR captions for OBS Studio powered by sherpa-onnx, with an adaptive-beep sensitive-word mute filter. Runs fully on-device; no cloud, no API keys. GPL-2.0-or-later licensed, bilingual Chinese + English.` |
+   | Description | `Independent third-party captioning plugin for OBS Studio powered by sherpa-onnx. Speech recognition runs locally after model download; no API keys are required. GPL-2.0-or-later licensed, with English and Chinese/English model presets plus an optional sensitive-word mute filter.` |
    | Maintainer Type | `Individual maintainer` |
    | Build System | `GitHub Actions` |
    | First Name / Last Name / Email | your legal name + project email |

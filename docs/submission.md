@@ -4,7 +4,7 @@ Templates for each public distribution channel.
 
 ## 1. OBS Forum resource page
 
-Use only after a separate policy review confirms the resource should be resubmitted. The full, rendered description lives in [`docs/forum-description.md`](forum-description.md) and is pre-filled by `scripts/obs-forum-submit.mjs` only when `CAPTIONFLOW_ENABLE_OBS_FORUM_SUBMIT=1` is set.
+Use only after a separate policy review confirms the resource should be resubmitted. The full, rendered description lives in [`docs/forum-description.md`](forum-description.md). Run `node scripts/obs-forum-submit.mjs` to print the fields for manual copy/paste into the forum form.
 
 Upload order recommended:
 
@@ -17,35 +17,20 @@ Tags to set: `captions`, `transcription`, `accessibility`, `subtitles`, `sherpa-
 
 ## 2. OBS Discord #plugin-dev
 
-A short announcement in [Discord #plugin-dev](https://discord.gg/obsproject)
-reaches core maintainers directly and has **no account-age or 2FA
-restriction**. The announcement template we use:
+Use Discord only to ask for policy clarification before resubmission, not as a replacement distribution channel. Draft:
 
 ```
-Hey folks — just shipped **CaptionFlow** v0.1.0, a GPL-2.0-or-later,
-on-device streaming ASR captioning plugin for OBS Studio.
+Hi, I'd like to ask for a policy check before resubmitting CaptionFlow.
 
-• Windows x64 + macOS universal builds (Sigstore attested)
-• Bilingual 中文/English Zipformer from sherpa-onnx
-• Adaptive-beep sensitive-word mute filter
-• One-click model download from the filter properties
-• Third-party plugin; not developed by, endorsed by, or affiliated with the OBS Project
+CaptionFlow is an independent GPL-2.0-or-later plugin for OBS Studio that runs sherpa-onnx speech recognition locally and writes captions to a text file source. The resource title and repository are now CaptionFlow / XWHQSJ/captionflow, and the description includes third-party and LLM-assistance disclosures.
 
-https://github.com/XWHQSJ/captionflow
-https://github.com/XWHQSJ/captionflow/releases/tag/0.1.0
+Source: https://github.com/XWHQSJ/captionflow
+Release: https://github.com/XWHQSJ/captionflow/releases/tag/0.1.0
 
-Feedback and bug reports very welcome!
+Is there anything else in the name, description, license, or packaging that would conflict with the Forum Resource and IP Policy?
 ```
 
-## 3. OBS Plugin Manager (upstream not ready yet)
-
-OBS's official Plugin Manager is tracked in
-[obsproject/rfcs#4](https://github.com/obsproject/rfcs/pull/4); the registry
-repo does not exist as of 2026-04. **Do not try to submit there yet.** Revisit
-once the RFC merges and `obsproject/obs-plugin-registry` (or equivalent) is
-announced.
-
-## 4. Announcement channels post-launch
+## 3. Announcement channels post-launch
 
 After the Forum listing is live:
 

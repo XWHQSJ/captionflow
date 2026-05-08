@@ -1,24 +1,20 @@
 # CaptionFlow
 
-> Third-party, on-device real-time captioning plugin for OBS Studio. Free, offline, bilingual (English + 中文), with sensitive-word mute.
+> Independent third-party plugin for OBS Studio that turns local audio into live captions on your machine.
+>
+> CaptionFlow is not developed by, endorsed by, or affiliated with the OBS Project.
 
 [GitHub](https://github.com/XWHQSJ/captionflow) · [Latest release](https://github.com/XWHQSJ/captionflow/releases/latest) · [Report issue](https://github.com/XWHQSJ/captionflow/issues) · GPL-2.0-or-later
 
 ## Why this plugin?
 
-| Traditional caption plugins | **CaptionFlow** |
-| --- | --- |
-| Send audio to Google / Azure / AWS | **100% on-device** streaming ASR |
-| Pay per minute of transcription | **Free forever** — GPL-2.0-or-later open source |
-| Require a stable internet connection | Runs offline once the model is downloaded |
-| English-only, often | **Bilingual 中文 + English** out of the box |
-| No built-in profanity control | **Adaptive beep mute** that tracks the speaker's pitch |
+CaptionFlow keeps speech recognition local during use: your microphone or desktop audio is decoded by sherpa-onnx on your machine, and captions are written to a text file that OBS Studio can read. The first model download contacts the upstream model host; after that, captioning works offline with the cached model.
 
-Built on [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)'s streaming Zipformer transducer — the engine Next-gen Kaldi uses for low-latency production transcription.
+The initial release focuses on low-latency English captions, a bilingual Chinese/English preset, and an optional delay-line mute filter for sensitive words.
 
 ## Features
 
-- 🎯 **Real-time captions** — partial results within ~100 ms of speech, writes atomically to a text file any Text (GDI+ / FreeType 2) source can read.
+- 🎯 **Real-time captions** — low-latency partial results while speech is still in progress, written atomically to a text file any Text (GDI+ / FreeType 2) source can read.
 - 📥 **One-click model download** — pick English / bilingual / tiny preset in the filter properties; the plugin downloads and extracts on demand.
 - 🤫 **Sensitive-word mute** — load a hotwords file (`word :boost`); the plugin delays output audio so it can retroactively beep out matches. Beep frequency and volume adapt to the speaker's F0 + RMS.
 - ⚡ **Hardware providers** — CPU (default), CUDA (Windows + NVIDIA), DirectML (Windows + any GPU). CoreML coming in v0.2.
@@ -35,13 +31,12 @@ Linux users: the code compiles cleanly, we just aren't shipping builds yet — c
 
 Download from the [GitHub release](https://github.com/XWHQSJ/captionflow/releases/latest):
 
-- **Windows**: extract the ZIP, merge `obs-plugins\` and `data\obs-plugins\` into `%ProgramFiles%\obs-studio\`. SmartScreen will prompt on first run → *More info* → *Run anyway*.
-- **macOS**: open the `.pkg`. Gatekeeper will warn on this unsigned release; right-click → *Open* → *Open*, or run:
-  ```bash
-  curl -L https://github.com/XWHQSJ/captionflow/raw/main/scripts/unquarantine-macos.sh | bash
-  ```
+- **Windows**: extract the ZIP, merge `obs-plugins\` and `data\obs-plugins\` into `%ProgramFiles%\obs-studio\`.
+- **macOS**: open the `.pkg`; it installs into the user OBS Studio plugin directory.
 
-Verify the binary came out of our public CI run (optional):
+The current packages are unsigned. Download them only from the GitHub release page and verify the Sigstore build provenance attestation before installing.
+
+Verify the binary came out of our public CI run before installing:
 
 ```bash
 gh attestation verify captionflow-0.1.0-macos-universal.pkg \
@@ -58,11 +53,11 @@ gh attestation verify captionflow-0.1.0-macos-universal.pkg \
 
 ## Model presets
 
-| Preset | Languages | Size | Latency |
-| --- | --- | --- | --- |
-| English (20M, fast) | en | ~70 MB | ~120 ms |
-| Chinese + English (bilingual) | zh, en | ~300 MB | ~180 ms |
-| English (tiny) | en | ~40 MB | ~90 ms |
+| Preset | Languages | Size |
+| --- | --- | --- |
+| English (20M, fast) | en | ~70 MB |
+| Chinese + English (bilingual) | zh, en | ~300 MB |
+| English (tiny) | en | ~40 MB |
 
 ## Links & credits
 
@@ -73,8 +68,4 @@ gh attestation verify captionflow-0.1.0-macos-universal.pkg \
   - [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate)
   - [OBS Studio](https://github.com/obsproject/obs-studio) plugin SDK
 
-CaptionFlow is a third-party plugin and is not developed by, endorsed by, or affiliated with the OBS Project.
-
-Development note: LLM tools were used as an assistant during development and documentation, with human review and validation before release.
-
-If this plugin saves you money on captioning, please star the repo and drop a thank-you to the sherpa-onnx team.
+Development note: LLM tools helped draft and revise parts of the code and documentation. The maintainer reviewed, edited, built, and tested the release before publication.

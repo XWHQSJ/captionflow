@@ -1,6 +1,8 @@
 # 🎙️ CaptionFlow
 
-> **On-device, real-time captions for OBS Studio — no cloud, no API keys, no data leaves your machine.**
+> **Independent third-party plugin for OBS Studio that turns local audio into live captions on your machine.**
+>
+> CaptionFlow is not developed by, endorsed by, or affiliated with the OBS Project.
 
 <p align="center">
   <a href="https://github.com/XWHQSJ/captionflow/actions/workflows/push.yaml"><img alt="CI" src="https://github.com/XWHQSJ/captionflow/actions/workflows/push.yaml/badge.svg"></a>
@@ -21,17 +23,9 @@
 
 ## ✨ Why this plugin?
 
-| Existing caption plugins | CaptionFlow |
-| --- | --- |
-| 🌐 Send audio to Google / Azure / AWS | 🔒 **100% on-device** streaming ASR |
-| 💸 Pay per minute of transcription | 💚 **Free forever** — open source, GPL-2.0-or-later |
-| 📡 Require a stable internet connection | ✈️ **Runs offline** once model is downloaded |
-| 🇬🇧 English-only, often | 🈷️ **中英双语** streaming Zipformer included |
-| 🎛️ No built-in profanity control | 🤫 **Adaptive beep mute** with per-speaker pitch |
+CaptionFlow keeps speech recognition local during use: your microphone or desktop audio is decoded by sherpa-onnx on your machine, and captions are written to a text file that OBS Studio can read. The first model download contacts the upstream model host; after that, captioning works offline with the cached model.
 
-Built on [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)'s streaming
-Zipformer transducer — the same engine used by Next-gen Kaldi for low-latency
-production transcription.
+The initial release focuses on three practical jobs: low-latency English captions, a bilingual Chinese/English preset, and an optional delay-line mute filter for sensitive words.
 
 ---
 
@@ -43,7 +37,7 @@ production transcription.
 
 ### 🎯 Real-time captions
 
-- Partial results within **~100 ms** after speech
+- Low-latency partial results while speech is still in progress
 - Final segmentation via rule-based endpointer
 - Writes atomically to a `.txt` file you feed into any OBS Text source
 
@@ -87,11 +81,11 @@ production transcription.
 
 Requires OBS Studio 31.0+.
 
-### Option A — GitHub Releases (today)
+### GitHub Releases
 
 1. Head to the [latest release](https://github.com/XWHQSJ/captionflow/releases/latest) and grab:
    - Windows: `captionflow-<version>-windows-x64.zip`
-   - macOS:   `captionflow-<version>-macos-universal.pkg`
+   - macOS: `captionflow-<version>-macos-universal.pkg`
 2. **Windows** — extract the zip, merge `obs-plugins\` and `data\obs-plugins\`
    into `%ProgramFiles%\obs-studio\`.
 3. **macOS** — double-click the `.pkg`; it installs into
@@ -100,34 +94,16 @@ Requires OBS Studio 31.0+.
 
 > ### 🛡️ About the unsigned release
 >
-> We don't yet hold Apple Developer ID or Windows Authenticode certificates
-> — both cost money that a free, GPL-2.0-or-later licensed plugin shouldn't have to pay.
-> Until we qualify for [SignPath Foundation](https://signpath.org) (free
-> Windows OSS signing) or a community-sponsored macOS identity, install
-> requires a one-time bypass:
+> The current packages are unsigned. Before installing, download them only from
+> the GitHub release page and verify the Sigstore build provenance attestation:
 >
-> - **macOS Gatekeeper** — right-click the `.pkg` → *Open* → *Open*, or
->   run the unquarantine helper after install:
->   ```bash
->   curl -L https://github.com/XWHQSJ/captionflow/raw/main/scripts/unquarantine-macos.sh | bash
->   ```
-> - **Windows SmartScreen** — *More info* → *Run anyway* on the first
->   extraction.
+> ```bash
+> gh attestation verify captionflow-0.1.0-macos-universal.pkg \
+>   --repo XWHQSJ/captionflow
+> ```
 >
-> Every release also carries a verifiable **Sigstore build provenance
-> attestation** you can check with
-> [`gh attestation verify`](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations),
-> so you can be sure the binary came out of this exact GitHub Actions run
-> even without a traditional code-signing certificate.
+> We are working toward Windows Authenticode and Apple Developer ID signing.
 
-### Option B — OBS Plugin Manager (future)
-
-OBS's official Plugin Manager is still an
-[open RFC (#4)](https://github.com/obsproject/rfcs/pull/4) upstream. Once
-it ships we'll submit for automatic install/update inside OBS Studio.
-Until then, GitHub Releases is the canonical distribution channel.
-
----
 
 ## 🎬 First use (60 seconds)
 
@@ -150,11 +126,11 @@ Until then, GitHub Releases is the canonical distribution channel.
 
 ## 🧠 Model presets
 
-| Preset | Languages | Size | Latency | Best for |
-| --- | --- | --- | --- | --- |
-| **English (20M, fast)** | en | ~70 MB | ~120 ms | default streamers |
-| **Chinese + English** | zh, en | ~300 MB | ~180 ms | bilingual content |
-| **English (tiny)** | en | ~40 MB | ~90 ms | low-end CPUs |
+| Preset | Languages | Size | Best for |
+| --- | --- | --- | --- |
+| **English (20M, fast)** | en | ~70 MB | default streamers |
+| **Chinese + English** | zh, en | ~300 MB | bilingual content |
+| **English (tiny)** | en | ~40 MB | low-end CPUs |
 
 Models come from the official
 [sherpa-onnx model zoo](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models).
@@ -235,7 +211,6 @@ ctest --test-dir build-tests --output-on-failure
 - [x] macOS universal + Windows x64 CI builds
 - [x] On-demand model download UI
 - [ ] Code signing (Apple Developer ID + Windows Authenticode)
-- [ ] Watch upstream [RFC #4](https://github.com/obsproject/rfcs/pull/4) for Plugin Manager, submit when ready
 - [ ] CoreML provider on macOS (faster on Apple Silicon)
 - [ ] More languages (ja, ko, es)
 - [ ] Whisper-based fallback for broadcast-grade accuracy
@@ -260,12 +235,7 @@ Built on the work of:
 - [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) — build-system scaffolding
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — streaming ASR runtime
 
-CaptionFlow is a third-party plugin and is not developed by, endorsed by, or affiliated with the OBS Project.
-
-Development note: LLM tools were used as an assistant during development and documentation, with human review and validation before release.
-
-If this plugin saves you money on captioning, please consider starring the
-repo and dropping a thank-you to the sherpa-onnx team.
+Development note: LLM tools helped draft and revise parts of the code and documentation. The maintainer reviewed, edited, built, and tested the release before publication.
 
 ---
 
