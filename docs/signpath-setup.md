@@ -12,9 +12,9 @@ the CI integration is already stubbed out on our side.
    | Field | Value |
    | --- | --- |
    | Project Name | `CaptionFlow` |
-   | Repository URL | `https://github.com/XWHQSJ/obs-ai-caption` |
-   | Homepage URL | `https://github.com/XWHQSJ/obs-ai-caption` |
-   | Download URL | `https://github.com/XWHQSJ/obs-ai-caption/releases/latest` |
+   | Repository URL | `https://github.com/XWHQSJ/captionflow` |
+   | Homepage URL | `https://github.com/XWHQSJ/captionflow` |
+   | Download URL | `https://github.com/XWHQSJ/captionflow/releases/latest` |
    | Privacy Policy URL | *leave blank — plugin collects no data* |
    | Wikipedia URL | *blank* |
    | Tagline | `Free, on-device streaming captions for OBS Studio` |

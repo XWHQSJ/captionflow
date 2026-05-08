@@ -2,7 +2,7 @@
 
 > Third-party, on-device real-time captioning plugin for OBS Studio. Free, offline, bilingual (English + 中文), with sensitive-word mute.
 
-[GitHub](https://github.com/XWHQSJ/obs-ai-caption) · [Latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) · [Report issue](https://github.com/XWHQSJ/obs-ai-caption/issues) · GPL-2.0-or-later
+[GitHub](https://github.com/XWHQSJ/captionflow) · [Latest release](https://github.com/XWHQSJ/captionflow/releases/latest) · [Report issue](https://github.com/XWHQSJ/captionflow/issues) · GPL-2.0-or-later
 
 ## Why this plugin?
 
@@ -33,19 +33,19 @@ Linux users: the code compiles cleanly, we just aren't shipping builds yet — c
 
 ## Installation
 
-Download from the [GitHub release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest):
+Download from the [GitHub release](https://github.com/XWHQSJ/captionflow/releases/latest):
 
 - **Windows**: extract the ZIP, merge `obs-plugins\` and `data\obs-plugins\` into `%ProgramFiles%\obs-studio\`. SmartScreen will prompt on first run → *More info* → *Run anyway*.
 - **macOS**: open the `.pkg`. Gatekeeper will warn on this unsigned release; right-click → *Open* → *Open*, or run:
   ```bash
-  curl -L https://github.com/XWHQSJ/obs-ai-caption/raw/main/scripts/unquarantine-macos.sh | bash
+  curl -L https://github.com/XWHQSJ/captionflow/raw/main/scripts/unquarantine-macos.sh | bash
   ```
 
 Verify the binary came out of our public CI run (optional):
 
 ```bash
 gh attestation verify captionflow-0.1.0-macos-universal.pkg \
-  --repo XWHQSJ/obs-ai-caption
+  --repo XWHQSJ/captionflow
 ```
 
 ## First use (60 seconds)
@@ -66,7 +66,7 @@ gh attestation verify captionflow-0.1.0-macos-universal.pkg \
 
 ## Links & credits
 
-- **Source / issues**: https://github.com/XWHQSJ/obs-ai-caption
+- **Source / issues**: https://github.com/XWHQSJ/captionflow
 - **License**: GPL-2.0-or-later
 - Built on:
   - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — Next-gen Kaldi team

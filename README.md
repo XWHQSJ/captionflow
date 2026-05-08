@@ -3,8 +3,8 @@
 > **On-device, real-time captions for OBS Studio — no cloud, no API keys, no data leaves your machine.**
 
 <p align="center">
-  <a href="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml"><img alt="CI" src="https://github.com/XWHQSJ/obs-ai-caption/actions/workflows/push.yaml/badge.svg"></a>
-  <a href="https://github.com/XWHQSJ/obs-ai-caption/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XWHQSJ/obs-ai-caption?include_prereleases&sort=semver"></a>
+  <a href="https://github.com/XWHQSJ/captionflow/actions/workflows/push.yaml"><img alt="CI" src="https://github.com/XWHQSJ/captionflow/actions/workflows/push.yaml/badge.svg"></a>
+  <a href="https://github.com/XWHQSJ/captionflow/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XWHQSJ/captionflow?include_prereleases&sort=semver"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg"></a>
   <a href="#-platforms"><img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-lightgrey"></a>
 </p>
@@ -89,7 +89,7 @@ Requires OBS Studio 31.0+.
 
 ### Option A — GitHub Releases (today)
 
-1. Head to the [latest release](https://github.com/XWHQSJ/obs-ai-caption/releases/latest) and grab:
+1. Head to the [latest release](https://github.com/XWHQSJ/captionflow/releases/latest) and grab:
    - Windows: `captionflow-<version>-windows-x64.zip`
    - macOS:   `captionflow-<version>-macos-universal.pkg`
 2. **Windows** — extract the zip, merge `obs-plugins\` and `data\obs-plugins\`
@@ -109,7 +109,7 @@ Requires OBS Studio 31.0+.
 > - **macOS Gatekeeper** — right-click the `.pkg` → *Open* → *Open*, or
 >   run the unquarantine helper after install:
 >   ```bash
->   curl -L https://github.com/XWHQSJ/obs-ai-caption/raw/main/scripts/unquarantine-macos.sh | bash
+>   curl -L https://github.com/XWHQSJ/captionflow/raw/main/scripts/unquarantine-macos.sh | bash
 >   ```
 > - **Windows SmartScreen** — *More info* → *Run anyway* on the first
 >   extraction.
@@ -246,7 +246,7 @@ ctest --test-dir build-tests --output-on-failure
 
 PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build, run
 tests, and open a pull request. Bug reports and feature requests go in
-[issues](https://github.com/XWHQSJ/obs-ai-caption/issues).
+[issues](https://github.com/XWHQSJ/captionflow/issues).
 
 ---
 

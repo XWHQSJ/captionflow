@@ -40,7 +40,7 @@ const SUBMISSION_DATA = {
   title: 'CaptionFlow',
   tagline: 'Free, offline, bilingual (EN + 中文) captions powered by sherpa-onnx',
   version: '0.1.0',
-  external_url: 'https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0',
+  external_url: 'https://github.com/XWHQSJ/captionflow/releases/tag/0.1.0',
   description: forumDesc,
 };
 

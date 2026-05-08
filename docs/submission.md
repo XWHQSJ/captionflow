@@ -31,8 +31,8 @@ on-device streaming ASR captioning plugin for OBS Studio.
 • One-click model download from the filter properties
 • Third-party plugin; not developed by, endorsed by, or affiliated with the OBS Project
 
-https://github.com/XWHQSJ/obs-ai-caption
-https://github.com/XWHQSJ/obs-ai-caption/releases/tag/0.1.0
+https://github.com/XWHQSJ/captionflow
+https://github.com/XWHQSJ/captionflow/releases/tag/0.1.0
 
 Feedback and bug reports very welcome!
 ```

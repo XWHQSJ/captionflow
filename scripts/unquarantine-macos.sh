@@ -4,7 +4,7 @@
 # from loading the plugin silently.
 #
 # Usage:
-#   curl -L https://github.com/XWHQSJ/obs-ai-caption/raw/main/scripts/unquarantine-macos.sh | bash
+#   curl -L https://github.com/XWHQSJ/captionflow/raw/main/scripts/unquarantine-macos.sh | bash
 # …or, after cloning:
 #   bash scripts/unquarantine-macos.sh
 set -euo pipefail
