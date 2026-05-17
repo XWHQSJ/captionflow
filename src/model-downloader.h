@@ -16,6 +16,7 @@ struct ModelPreset {
 	const char *description;      /* one-line help */
 	const char *archive_url;      /* tar.bz2 direct download */
 	const char *extracted_subdir; /* subdir inside archive (strip one level) */
+	const char *sha256_hex;       /* lowercase hex SHA-256 of the archive, or "" to skip */
 };
 
 /* Returns a static list of known presets, in display order. */

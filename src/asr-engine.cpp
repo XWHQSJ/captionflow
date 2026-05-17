@@ -19,12 +19,11 @@ struct AsrEngine::Impl {
 	AsrConfig config;
 };
 
-AsrEngine::AsrEngine() : impl_(new Impl), ring_(kAsrRingCapacity) {}
+AsrEngine::AsrEngine() : impl_(std::make_unique<Impl>()), ring_(kAsrRingCapacity) {}
 
 AsrEngine::~AsrEngine()
 {
 	shutdown();
-	delete impl_;
 }
 
 bool AsrEngine::init(const AsrConfig &config)

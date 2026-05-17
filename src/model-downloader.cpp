@@ -4,6 +4,7 @@
 #include <plugin-support.h>
 
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFile>
@@ -34,6 +35,7 @@ const std::array<ModelPreset, 3> kPresets = {{
 		"https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
 		"sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
 		"sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
+		"" /* sha256 — populate when upstream pins a checksum. */,
 	},
 	{
 		"zh-en-bilingual",
@@ -42,6 +44,7 @@ const std::array<ModelPreset, 3> kPresets = {{
 		"https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
 		"sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2",
 		"sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+		"",
 	},
 	{
 		"en-small",
@@ -50,6 +53,7 @@ const std::array<ModelPreset, 3> kPresets = {{
 		"https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
 		"sherpa-onnx-streaming-zipformer-small-en-2023-06-26.tar.bz2",
 		"sherpa-onnx-streaming-zipformer-small-en-2023-06-26",
+		"",
 	},
 }};
 
@@ -176,7 +180,7 @@ private:
 		archive_path_ =
 			QString::fromStdString(install_dir) + QStringLiteral(".tar.bz2");
 		install_dir_ = QString::fromStdString(install_dir);
-		extracted_subdir_ = QString::fromUtf8(preset.extracted_subdir);
+		expected_sha256_ = QString::fromUtf8(preset.sha256_hex).trimmed();
 
 		QNetworkRequest req(QUrl(QString::fromUtf8(preset.archive_url)));
 		req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
@@ -223,6 +227,28 @@ private:
 		reply_->deleteLater();
 		reply_ = nullptr;
 
+		/* Verify SHA-256 if the preset pinned one. Reject mismatches to
+		 * block tampered mirrors / MITM. */
+		if (expected_sha256_.length() == 64) {
+			QFile vf(archive_path_);
+			if (!vf.open(QIODevice::ReadOnly)) {
+				fail(tr("Cannot reopen archive for hashing"));
+				return;
+			}
+			QCryptographicHash hasher(QCryptographicHash::Sha256);
+			if (!hasher.addData(&vf)) {
+				fail(tr("SHA-256 hashing failed"));
+				return;
+			}
+			const QString got = QString::fromLatin1(hasher.result().toHex());
+			if (got.compare(expected_sha256_, Qt::CaseInsensitive) != 0) {
+				QFile::remove(archive_path_);
+				fail(tr("SHA-256 mismatch (expected %1, got %2)")
+					     .arg(expected_sha256_, got));
+				return;
+			}
+		}
+
 		status_->setText(tr("Extracting..."));
 		progress_->setRange(0, 0);
 
@@ -264,9 +290,9 @@ private:
 	QPushButton *download_btn_;
 	QNetworkAccessManager nam_;
 	QNetworkReply *reply_ = nullptr;
+	QString expected_sha256_;
 	QString archive_path_;
 	QString install_dir_;
-	QString extracted_subdir_;
 };
 
 } /* namespace */

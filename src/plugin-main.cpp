@@ -37,7 +37,7 @@ bool obs_module_load(void)
 	return true;
 }
 
-void obs_module_unload(void)
+MODULE_EXPORT void obs_module_unload(void)
 {
 	obs_log(LOG_INFO, "plugin unloaded");
 }

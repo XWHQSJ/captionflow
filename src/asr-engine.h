@@ -3,6 +3,7 @@
 #include "audio-ring-buffer.h"
 
 #include <atomic>
+#include <memory>
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -89,7 +90,7 @@ private:
 	void decode_thread_func();
 
 	struct Impl;
-	Impl *impl_ = nullptr;
+	std::unique_ptr<Impl> impl_;
 
 	AudioRingBuffer ring_;
 	std::atomic<int> source_sample_rate_{48000};

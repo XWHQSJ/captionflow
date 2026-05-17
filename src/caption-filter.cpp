@@ -452,8 +452,12 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 	if (!cf->engine.is_running() || audio->frames == 0)
 		return audio;
 
-	const uint32_t sample_rate = audio_output_get_sample_rate(obs_get_audio());
-	const size_t channels = audio_output_get_channels(obs_get_audio());
+	audio_t *audio_out = obs_get_audio();
+	if (!audio_out)
+		return audio;
+
+	const uint32_t sample_rate = audio_output_get_sample_rate(audio_out);
+	const size_t channels = audio_output_get_channels(audio_out);
 
 	cf->current_sample_rate.store(sample_rate, std::memory_order_relaxed);
 	cf->current_channels.store(channels, std::memory_order_relaxed);
