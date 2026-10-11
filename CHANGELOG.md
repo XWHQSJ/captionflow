@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Caption files are written on a background thread. Partial results no longer stall the OBS audio callback or the ASR decode thread on disk, and a newer caption cannot be overwritten by an older one.
+- 48 kHz input is lowpass-decimated to 16 kHz before it enters the ASR queue, so the queue holds 4 seconds at the model rate and sherpa-onnx does not resample that stream again.
+- Sensitive-word pitch detection runs an 8 kHz autocorrelation with parabolic peak interpolation, instead of a full-rate search on the audio callback.
+- The censor beep is read from a sine table instead of calling `sin` for every sample.
+- sherpa-onnx model debug logging is off, so loading a model no longer dumps debug output into the OBS log.
+- The audio/ASR ring signals the decode thread only when the buffer goes from empty to non-empty.
+
 ## [0.2.0] - 2026-05-17
 
 First public release as **CaptionFlow** — rebranded from the earlier

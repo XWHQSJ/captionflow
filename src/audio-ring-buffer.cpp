@@ -4,10 +4,7 @@
 #include <chrono>
 #include <cstring>
 
-AudioRingBuffer::AudioRingBuffer(size_t capacity)
-	: buf_(capacity), capacity_(capacity)
-{
-}
+AudioRingBuffer::AudioRingBuffer(size_t capacity) : buf_(capacity), capacity_(capacity) {}
 
 size_t AudioRingBuffer::write(const float *data, size_t count)
 {
@@ -29,13 +26,17 @@ size_t AudioRingBuffer::write(const float *data, size_t count)
 	if (n == 0)
 		return 0;
 
+	const bool was_empty = current_write == current_read;
 	const size_t first = std::min(n, capacity_ - current_write);
 	std::memcpy(buf_.data() + current_write, data, first * sizeof(float));
 	if (first < n)
 		std::memcpy(buf_.data(), data + first, (n - first) * sizeof(float));
 
 	write_pos_.store((current_write + n) % capacity_, std::memory_order_release);
-	not_empty_.notify_one();
+	/* The consumer blocks only while the ring is empty. Signaling on later
+	 * chunks would be a wakeup with nobody waiting, on the audio thread. */
+	if (was_empty)
+		not_empty_.notify_one();
 	return n;
 }
 
@@ -106,7 +107,6 @@ bool AudioRingBuffer::wait_for_data(int timeout_ms)
 	 * equivalent to while (!pred()) wait_for(...), which combines with the
 	 * mutex to guarantee we won't miss a notify_one() issued by a producer
 	 * between our fast-path check and the wait. */
-	return not_empty_.wait_for(
-		lock, std::chrono::milliseconds(timeout_ms),
-		[this] { return size() > 0 || shutdown_.load(std::memory_order_relaxed); });
+	return not_empty_.wait_for(lock, std::chrono::milliseconds(timeout_ms),
+				   [this] { return size() > 0 || shutdown_.load(std::memory_order_relaxed); });
 }

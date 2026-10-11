@@ -1,6 +1,8 @@
 #include "subtitle-manager.h"
 #include "test-framework.h"
 
+#include <cstdint>
+
 TEST(SubtitleManager, StartsEmpty)
 {
 	SubtitleManager mgr;
@@ -91,6 +93,51 @@ TEST(SubtitleManager, ShouldEmitThenComposeGivesSameContent)
 	EXPECT_STREQ(composed, "abc\n");
 	/* A second should_emit call without content change must be false. */
 	EXPECT_FALSE(mgr.should_emit_file_update(100));
+}
+
+TEST(SubtitleManager, ClearTimeoutEmitsBlankAndThenIdles)
+{
+	SubtitleManager mgr;
+	mgr.set_clear_timeout_sec(1.0);
+	mgr.on_final("fresh", 1000);
+	EXPECT_TRUE(mgr.should_emit_file_update(1000));
+	EXPECT_STREQ(mgr.last_emitted_content(), "fresh\n");
+	EXPECT_EQ(mgr.next_file_check_ms(), 2001u);
+
+	EXPECT_FALSE(mgr.should_emit_file_update(2000));
+	EXPECT_TRUE(mgr.should_emit_file_update(2001));
+	EXPECT_STREQ(mgr.last_emitted_content(), "");
+	EXPECT_EQ(mgr.next_file_check_ms(), UINT64_MAX);
+	EXPECT_FALSE(mgr.should_emit_file_update(9000));
+}
+
+TEST(SubtitleManager, ThrottleExposesNextCheckTime)
+{
+	SubtitleManager mgr;
+	mgr.set_partial_write_throttle_ms(80);
+	mgr.set_clear_timeout_sec(5.0);
+	mgr.on_partial("a", 100);
+	EXPECT_TRUE(mgr.should_emit_file_update(100));
+	EXPECT_EQ(mgr.next_file_check_ms(), 5101u);
+
+	mgr.on_partial("ab", 130);
+	EXPECT_FALSE(mgr.should_emit_file_update(130));
+	EXPECT_EQ(mgr.next_file_check_ms(), 180u);
+	EXPECT_TRUE(mgr.should_emit_file_update(180));
+	EXPECT_STREQ(mgr.last_emitted_content(), "ab\n");
+}
+
+TEST(SubtitleManager, DuplicatePartialBecomesIdle)
+{
+	SubtitleManager mgr;
+	mgr.set_partial_write_throttle_ms(0);
+	mgr.set_clear_timeout_sec(5.0);
+	mgr.on_partial("a", 100);
+	EXPECT_TRUE(mgr.should_emit_file_update(100));
+	mgr.on_partial("a", 200);
+	EXPECT_FALSE(mgr.should_emit_file_update(200));
+	EXPECT_EQ(mgr.next_file_check_ms(), 5201u);
+	EXPECT_FALSE(mgr.should_emit_file_update(201));
 }
 
 TEST(SubtitleManager, FinalForcesImmediateEmit)

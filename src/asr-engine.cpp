@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <memory>
 #include <vector>
 
 using namespace ai_caption::constants;
@@ -46,12 +47,12 @@ bool AsrEngine::init(const AsrConfig &config)
 	c.model_config.tokens = config.tokens_path.c_str();
 	c.model_config.num_threads = config.num_threads;
 	c.model_config.provider = config.provider.c_str();
-	c.model_config.debug = 1;
+	/* debug=1 logs on the decode path. Leave it off in the plugin. */
+	c.model_config.debug = 0;
 
 	c.model_config.model_type = "";
 	c.model_config.modeling_unit = config.modeling_unit.c_str();
-	c.model_config.bpe_vocab =
-		config.bpe_vocab_path.empty() ? "" : config.bpe_vocab_path.c_str();
+	c.model_config.bpe_vocab = config.bpe_vocab_path.empty() ? "" : config.bpe_vocab_path.c_str();
 
 	c.decoding_method = config.decoding_method.c_str();
 	c.max_active_paths = config.max_active_paths;
@@ -102,6 +103,7 @@ bool AsrEngine::init(const AsrConfig &config)
 	}
 
 	ring_.reset();
+	target_sample_rate_.store(config.sample_rate > 0 ? config.sample_rate : 16000, std::memory_order_relaxed);
 	running_.store(true, std::memory_order_release);
 	decode_thread_ = std::thread(&AsrEngine::decode_thread_func, this);
 	return true;
@@ -148,9 +150,35 @@ void AsrEngine::set_result_callback(AsrResultCallback cb)
 
 void AsrEngine::feed_audio(const float *samples, size_t count, int sample_rate)
 {
-	if (!running_.load(std::memory_order_acquire) || count == 0)
+	if (!running_.load(std::memory_order_acquire) || count == 0 || !samples)
 		return;
 
+	if (sample_rate <= 0)
+		sample_rate = 16000;
+
+	if (sample_rate != active_input_rate_) {
+		decimator_.reset();
+		active_input_rate_ = sample_rate;
+	}
+
+	const int target = target_sample_rate_.load(std::memory_order_relaxed);
+	if (target > 0 && decimator_.decimate(sample_rate, target, samples, count, resample_buf_)) {
+		/* Publish the rate pair before the ring release so a consumer
+		 * that observes the new samples also observes the rates. */
+		input_sample_rate_.store(sample_rate, std::memory_order_relaxed);
+		source_sample_rate_.store(target, std::memory_order_relaxed);
+		if (resample_buf_.empty())
+			return;
+		const size_t written = ring_.write(resample_buf_.data(), resample_buf_.size());
+		if (written < resample_buf_.size()) {
+			const size_t missed = resample_buf_.size() - written;
+			const size_t scale = static_cast<size_t>(sample_rate) / static_cast<size_t>(target);
+			dropped_samples_.fetch_add(missed * (scale == 0 ? 1 : scale), std::memory_order_relaxed);
+		}
+		return;
+	}
+
+	input_sample_rate_.store(sample_rate, std::memory_order_relaxed);
 	source_sample_rate_.store(sample_rate, std::memory_order_relaxed);
 	const size_t written = ring_.write(samples, count);
 	if (written < count)
@@ -204,76 +232,84 @@ void AsrEngine::decode_thread_func()
 		if (frames_read == 0)
 			continue;
 
-		std::lock_guard<std::mutex> lock(onnx_mutex_);
-
-		if (shutting_down_.load(std::memory_order_acquire))
-			break;
-		if (!impl_->recognizer || !impl_->stream)
-			break;
-
 		try {
-			SherpaOnnxOnlineStreamAcceptWaveform(
-				impl_->stream,
-				source_sample_rate_.load(std::memory_order_relaxed),
-				chunk.data(), static_cast<int32_t>(frames_read));
+			std::string text;
+			bool have_update = false;
+			bool is_partial = true;
+			float token_age_sec = 0.0f;
 
-			segment_samples_fed += frames_read;
+			{
+				std::lock_guard<std::mutex> lock(onnx_mutex_);
 
-			while (SherpaOnnxIsOnlineStreamReady(impl_->recognizer, impl_->stream))
-				SherpaOnnxDecodeOnlineStream(impl_->recognizer, impl_->stream);
+				if (shutting_down_.load(std::memory_order_acquire))
+					break;
+				if (!impl_->recognizer || !impl_->stream)
+					break;
 
-			const SherpaOnnxOnlineRecognizerResult *result =
-				SherpaOnnxGetOnlineStreamResult(impl_->recognizer, impl_->stream);
+				SherpaOnnxOnlineStreamAcceptWaveform(
+					impl_->stream, source_sample_rate_.load(std::memory_order_relaxed),
+					chunk.data(), static_cast<int32_t>(frames_read));
 
-			if (result && result->text && result->text[0] != '\0') {
-				std::string text(result->text);
-				const bool is_endpoint =
-					SherpaOnnxOnlineStreamIsEndpoint(
-						impl_->recognizer, impl_->stream) != 0;
+				segment_samples_fed += frames_read;
 
-				if (text != last_text_ || is_endpoint) {
-					last_text_ = text;
+				while (SherpaOnnxIsOnlineStreamReady(impl_->recognizer, impl_->stream))
+					SherpaOnnxDecodeOnlineStream(impl_->recognizer, impl_->stream);
 
-					float token_age_sec = 0.0f;
-					if (result->timestamps && result->count > 0) {
-						const float last_token_time =
-							result->timestamps[result->count - 1];
-						const int sr = source_sample_rate_.load(
-							std::memory_order_relaxed);
-						const float segment_fed_time =
-							sr > 0 ? static_cast<float>(segment_samples_fed) /
-									 static_cast<float>(sr)
-							       : 0.0f;
-						token_age_sec = segment_fed_time - last_token_time;
-						if (token_age_sec < 0.0f)
-							token_age_sec = 0.0f;
+				using ResultPtr = std::unique_ptr<const SherpaOnnxOnlineRecognizerResult,
+								  decltype(&SherpaOnnxDestroyOnlineRecognizerResult)>;
+				ResultPtr result(SherpaOnnxGetOnlineStreamResult(impl_->recognizer, impl_->stream),
+						 &SherpaOnnxDestroyOnlineRecognizerResult);
+
+				if (result && result->text && result->text[0] != '\0') {
+					const bool is_endpoint =
+						SherpaOnnxOnlineStreamIsEndpoint(impl_->recognizer, impl_->stream) != 0;
+
+					if (is_endpoint || last_text_ != result->text) {
+						text.assign(result->text);
+						have_update = true;
+						is_partial = !is_endpoint;
+						last_text_ = text;
+
+						if (result->timestamps && result->count > 0) {
+							const float last_token_time =
+								result->timestamps[result->count - 1];
+							const int sr =
+								source_sample_rate_.load(std::memory_order_relaxed);
+							const float segment_fed_time =
+								sr > 0 ? static_cast<float>(segment_samples_fed) /
+										 static_cast<float>(sr)
+								       : 0.0f;
+							token_age_sec = segment_fed_time - last_token_time;
+							if (token_age_sec < 0.0f)
+								token_age_sec = 0.0f;
+						}
+
+						if (is_endpoint) {
+							SherpaOnnxOnlineStreamReset(impl_->recognizer, impl_->stream);
+							last_text_.clear();
+							segment_samples_fed = 0;
+						}
 					}
-
-					std::lock_guard<std::mutex> cb_lock(callback_mutex_);
-					if (result_callback_)
-						result_callback_(text, !is_endpoint, token_age_sec);
-				}
-
-				if (is_endpoint) {
-					SherpaOnnxOnlineStreamReset(impl_->recognizer, impl_->stream);
-					last_text_.clear();
-					segment_samples_fed = 0;
 				}
 			}
 
-			if (result)
-				SherpaOnnxDestroyOnlineRecognizerResult(result);
+			if (have_update) {
+				AsrResultCallback cb;
+				{
+					std::lock_guard<std::mutex> cb_lock(callback_mutex_);
+					cb = result_callback_;
+				}
+				if (cb)
+					cb(text, is_partial, token_age_sec);
+			}
 
 		} catch (const std::exception &e) {
-			const uint64_t n =
-				decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
+			const uint64_t n = decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
 			if (n <= 3 || (n % 100) == 0)
-				std::fprintf(stderr,
-					     "[CaptionFlow] sherpa-onnx decode exception: %s (total=%llu)\n",
+				std::fprintf(stderr, "[CaptionFlow] sherpa-onnx decode exception: %s (total=%llu)\n",
 					     e.what(), static_cast<unsigned long long>(n));
 		} catch (...) {
-			const uint64_t n =
-				decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
+			const uint64_t n = decode_errors_.fetch_add(1, std::memory_order_relaxed) + 1;
 			if (n <= 3 || (n % 100) == 0)
 				std::fprintf(stderr,
 					     "[CaptionFlow] sherpa-onnx decode unknown exception (total=%llu)\n",

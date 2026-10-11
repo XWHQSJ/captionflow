@@ -23,8 +23,18 @@ public:
 	void set_partial_write_throttle_ms(uint64_t value);
 	bool should_emit_file_update(uint64_t now_ms);
 
+	/* Valid after should_emit_file_update() returns true: the text that
+	 * decision committed to. */
+	const std::string &last_emitted_content() const { return last_emitted_content_; }
+
+	/* Earliest time the caller needs to poll again. UINT64_MAX means the
+	 * caption state cannot change until the next partial or final. */
+	uint64_t next_file_check_ms() const { return next_file_check_ms_; }
+
 private:
 	void trim_history();
+	bool clear_timeout_due(uint64_t now_ms) const;
+	void recompute_next_check(uint64_t now_ms);
 
 	int max_lines_ = 2;
 	double clear_timeout_sec_ = 5.0;
@@ -34,6 +44,7 @@ private:
 	std::string last_emitted_content_;
 	bool has_pending_partial_update_ = false;
 	bool force_emit_next_update_ = false;
+	uint64_t next_file_check_ms_ = 0;
 	std::deque<std::string> finals_;
 	std::string partial_;
 };

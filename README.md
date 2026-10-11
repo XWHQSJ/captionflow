@@ -157,7 +157,7 @@ cmake --build build_x64 --config RelWithDebInfo -j
 cmake -S tests -B build-tests
 cmake --build build-tests -j
 ctest --test-dir build-tests --output-on-failure
-# -> 45 passed, 0 failed
+# -> 61 passed, 0 failed
 ```
 
 ---
@@ -187,20 +187,20 @@ ctest --test-dir build-tests --output-on-failure
               ascii/utf-8 hotword matcher
 ```
 
-- **SPSC lock-free ring buffer** (`AudioRingBuffer`) between OBS audio thread and ASR decode thread
-- **Autocorrelation pitch detector** adapts the beep frequency to the speaker
+- **SPSC lock-free ring buffer** (`AudioRingBuffer`) between the OBS audio thread and the ASR decode thread. 48 kHz input is decimated to 16 kHz first, so the queue holds 4 seconds at the model rate
+- **8 kHz autocorrelation pitch detector** adapts the beep frequency to the speaker
 - **Word-boundary-aware hotword matcher** handles ASCII and mixed CJK
-- **Atomic caption file writes** so downstream readers never see a half-written line
+- **Background atomic caption writes** so the audio and decode threads do not block on disk, and readers never see a half-written line
 
 ---
 
 ## 🧪 Quality
 
-![tests](https://img.shields.io/badge/unit%20tests-45%2F45%20passing-brightgreen)
+![tests](https://img.shields.io/badge/unit%20tests-61%2F61%20passing-brightgreen)
 ![asan](https://img.shields.io/badge/ASan-clean-brightgreen)
 ![ubsan](https://img.shields.io/badge/UBSan-clean-brightgreen)
 
-- 45 unit tests across ring buffer, analyzer, delay line, mute matcher, subtitle manager, model finder
+- 61 unit tests across ring buffer, analyzer, decimator, delay line, mute matcher, subtitle manager, caption writer, model finder
 - Tests run under `-Werror` + AddressSanitizer + UndefinedBehaviorSanitizer in CI
 - Regression tests for every fixed bug (SPSC lost-wakeup, boundary underflow, …)
 

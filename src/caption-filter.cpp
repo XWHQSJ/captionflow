@@ -2,6 +2,7 @@
 #include "asr-engine.h"
 #include "audio-analyzer.h"
 #include "audio-delay-buffer.h"
+#include "caption-file-writer.h"
 #include "constants.h"
 #include "model-downloader.h"
 #include "model-finder.h"
@@ -12,14 +13,14 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cerrno>
 #include <chrono>
-#include <cstdio>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using namespace ai_caption::constants;
@@ -70,15 +71,18 @@ struct caption_filter_data {
 	std::mutex text_mutex;
 	SubtitleManager subtitles;
 	std::string output_file_path; /* guarded by settings_mutex */
+	CaptionFileWriter caption_writer;
+	std::atomic<uint64_t> caption_check_due_ms{0};
+	uint64_t caption_generation = 0; /* guarded by text_mutex */
 
-	std::vector<float> mono_buf;            /* OBS audio thread only */
-	std::vector<uint8_t> chunk_mute_flags;  /* OBS audio thread only */
+	std::vector<float> mono_buf;           /* OBS audio thread only */
+	std::vector<uint8_t> chunk_mute_flags; /* OBS audio thread only */
 
 	/* ---- Audio timing ---- */
 	std::atomic<uint64_t> total_audio_frames{0};
 	std::atomic<uint32_t> current_sample_rate{kDefaultSampleRate};
 	std::atomic<size_t> current_channels{2};
-	int last_bad_word_count = 0;            /* ASR thread only */
+	int last_bad_word_count = 0; /* ASR thread only */
 
 	/* ---- Mute state ---- */
 	std::atomic<bool> mute_enabled{false};
@@ -86,10 +90,10 @@ struct caption_filter_data {
 	std::atomic<uint32_t> mute_padding_ms{300};
 
 	MuteWordList mute_words;
-	AudioAnalyzer analyzer;                 /* OBS audio thread only */
-	AudioDelayBuffer delay_buf;             /* OBS audio thread only */
-	BeepGenerator beep;                     /* OBS audio thread only */
-	bool had_beep_last_chunk = false;       /* OBS audio thread only */
+	AudioAnalyzer analyzer;           /* OBS audio thread only */
+	AudioDelayBuffer delay_buf;       /* OBS audio thread only */
+	BeepGenerator beep;               /* OBS audio thread only */
+	bool had_beep_last_chunk = false; /* OBS audio thread only */
 
 	std::mutex mute_intervals_mutex;
 	std::vector<MuteInterval> mute_intervals;
@@ -113,60 +117,58 @@ struct caption_filter_data {
 static uint64_t now_ms()
 {
 	using namespace std::chrono;
-	return static_cast<uint64_t>(
-		duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
+	return static_cast<uint64_t>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
 /* -------------------------------------------------------- */
 /* Caption file output                                      */
 
-/* Write the current subtitle state to disk when an update is pending.
- * Assumes the caller has already verified via SubtitleManager::should_emit_file_update
- * that a write is needed; this function just composes the content and does
- * the IO. */
-static void write_caption_file(caption_filter_data *cf, const std::string &content)
-{
-	std::string output_path;
-	{
-		std::lock_guard<std::mutex> lk(cf->settings_mutex);
-		output_path = cf->output_file_path;
-	}
-	if (output_path.empty())
-		return;
+struct CaptionDecision {
+	bool should_write = false;
+	uint64_t generation = 0;
+	std::string content;
+};
 
-	const std::string tmp_path = output_path + ".tmp";
-	{
-		std::ofstream out(tmp_path, std::ios::trunc);
-		if (!out.is_open()) {
-			warn("Failed to open caption temp file '%s'", tmp_path.c_str());
-			return;
-		}
-		out << content;
+/* Caller holds text_mutex. */
+static CaptionDecision collect_emit_locked(caption_filter_data *cf, uint64_t now)
+{
+	CaptionDecision decision;
+	decision.should_write = cf->subtitles.should_emit_file_update(now);
+	if (decision.should_write) {
+		decision.content = cf->subtitles.last_emitted_content();
+		decision.generation = ++cf->caption_generation;
 	}
-#ifdef _WIN32
-	/* rename() on Windows fails if destination exists; remove first. */
-	if (std::remove(output_path.c_str()) != 0 && errno != ENOENT)
-		warn("Failed to remove caption file '%s': %s", output_path.c_str(),
-		     std::strerror(errno));
-#endif
-	if (std::rename(tmp_path.c_str(), output_path.c_str()) != 0)
-		warn("Failed to rename caption file '%s' -> '%s': %s",
-		     tmp_path.c_str(), output_path.c_str(), std::strerror(errno));
+	cf->caption_check_due_ms.store(cf->subtitles.next_file_check_ms(), std::memory_order_relaxed);
+	return decision;
 }
 
-/* Checks whether a write is needed and, if so, composes the content and
- * writes. Combines the "should emit" check with "compose" under text_mutex
- * so that both see a consistent snapshot. */
-static void maybe_write_caption_file(caption_filter_data *cf)
+static void submit_caption_output(caption_filter_data *cf, CaptionDecision decision)
 {
-	std::string content;
+	if (!decision.should_write)
+		return;
+
+	std::string path;
+	{
+		std::lock_guard<std::mutex> lk(cf->settings_mutex);
+		path = cf->output_file_path;
+	}
+	cf->caption_writer.submit(decision.generation, std::move(path), std::move(decision.content));
+}
+
+/* Audio-thread poll. Skips the subtitle lock until a partial is due or the
+ * clear-timeout can change the file. */
+static void maybe_publish_subtitles(caption_filter_data *cf)
+{
+	const uint64_t now = now_ms();
+	if (now < cf->caption_check_due_ms.load(std::memory_order_relaxed))
+		return;
+
+	CaptionDecision decision;
 	{
 		std::lock_guard<std::mutex> lk(cf->text_mutex);
-		if (!cf->subtitles.should_emit_file_update(now_ms()))
-			return;
-		content = cf->subtitles.compose_output(now_ms());
+		decision = collect_emit_locked(cf, now);
 	}
-	write_caption_file(cf, content);
+	submit_caption_output(cf, std::move(decision));
 }
 
 /* -------------------------------------------------------- */
@@ -190,8 +192,7 @@ static void maybe_log_asr_stats(caption_filter_data *cf)
 	     static_cast<unsigned long long>(stats.decode_errors));
 }
 
-static void check_mute_trigger(caption_filter_data *cf, const std::string &text, bool is_partial,
-			       float token_age_sec)
+static void check_mute_trigger(caption_filter_data *cf, const std::string &text, bool is_partial, float token_age_sec)
 {
 	if (!cf->mute_enabled.load(std::memory_order_acquire))
 		return;
@@ -200,8 +201,7 @@ static void check_mute_trigger(caption_filter_data *cf, const std::string &text,
 	if (current_bad_words > cf->last_bad_word_count) {
 		const uint64_t current_frame = cf->total_audio_frames.load(std::memory_order_acquire);
 		const size_t ring_size = cf->engine.get_pending_samples();
-		const uint64_t decoded_frame =
-			(current_frame > ring_size) ? current_frame - ring_size : 0;
+		const uint64_t decoded_frame = (current_frame > ring_size) ? current_frame - ring_size : 0;
 
 		uint32_t sample_rate = cf->current_sample_rate.load(std::memory_order_acquire);
 		if (sample_rate == 0)
@@ -214,14 +214,12 @@ static void check_mute_trigger(caption_filter_data *cf, const std::string &text,
 		if (token_age_sec > 0.01f)
 			lookback_sec = token_age_sec + kMuteLookbackPaddingSec;
 
-		const uint64_t lookback_frames =
-			static_cast<uint64_t>(sample_rate * lookback_sec);
+		const uint64_t lookback_frames = static_cast<uint64_t>(sample_rate * lookback_sec);
 		const uint32_t padding_ms = cf->mute_padding_ms.load(std::memory_order_acquire);
-		const uint64_t padding_frames =
-			static_cast<uint64_t>(sample_rate) * padding_ms / 1000;
+		const uint64_t padding_frames = static_cast<uint64_t>(sample_rate) * padding_ms / 1000;
 
-		const uint64_t start_mute_frame =
-			(decoded_frame > lookback_frames) ? decoded_frame - lookback_frames : 0;
+		const uint64_t start_mute_frame = (decoded_frame > lookback_frames) ? decoded_frame - lookback_frames
+										    : 0;
 		const uint64_t end_mute_frame = start_mute_frame + lookback_frames + padding_frames;
 
 		{
@@ -231,11 +229,9 @@ static void check_mute_trigger(caption_filter_data *cf, const std::string &text,
 
 		info("MUTE TRIGGERED! Bad words %d -> %d. Frames [%llu..%llu] "
 		     "(decoded=%llu ring=%zu token_age=%.2fs lookback=%.2fs)",
-		     cf->last_bad_word_count, current_bad_words,
-		     static_cast<unsigned long long>(start_mute_frame),
-		     static_cast<unsigned long long>(end_mute_frame),
-		     static_cast<unsigned long long>(decoded_frame), ring_size,
-		     static_cast<double>(token_age_sec), static_cast<double>(lookback_sec));
+		     cf->last_bad_word_count, current_bad_words, static_cast<unsigned long long>(start_mute_frame),
+		     static_cast<unsigned long long>(end_mute_frame), static_cast<unsigned long long>(decoded_frame),
+		     ring_size, static_cast<double>(token_age_sec), static_cast<double>(lookback_sec));
 
 		cf->last_bad_word_count = current_bad_words;
 	}
@@ -246,33 +242,25 @@ static void check_mute_trigger(caption_filter_data *cf, const std::string &text,
 		cf->last_bad_word_count = 0;
 }
 
-static void on_asr_result(caption_filter_data *cf, const std::string &text, bool is_partial,
-			  float token_age_sec)
+static void on_asr_result(caption_filter_data *cf, const std::string &text, bool is_partial, float token_age_sec)
 {
 	check_mute_trigger(cf, text, is_partial, token_age_sec);
 
-	bool should_write_file = false;
+	CaptionDecision decision;
+	const uint64_t now = now_ms();
 	{
 		std::lock_guard<std::mutex> lk(cf->text_mutex);
-		const uint64_t cur_ms = now_ms();
 		if (is_partial)
-			cf->subtitles.on_partial(text, cur_ms);
+			cf->subtitles.on_partial(text, now);
 		else
-			cf->subtitles.on_final(text, cur_ms);
-		should_write_file = cf->subtitles.should_emit_file_update(cur_ms);
+			cf->subtitles.on_final(text, now);
+		decision = collect_emit_locked(cf, now);
 	}
 
 	if (!is_partial)
 		info("ASR FINAL: '%s'", text.c_str());
 
-	if (should_write_file) {
-		std::string content;
-		{
-			std::lock_guard<std::mutex> lk(cf->text_mutex);
-			content = cf->subtitles.compose_output(now_ms());
-		}
-		write_caption_file(cf, content);
-	}
+	submit_caption_output(cf, std::move(decision));
 }
 
 /* -------------------------------------------------------- */
@@ -296,6 +284,10 @@ static void caption_filter_destroy(void *data)
 	auto *cf = static_cast<caption_filter_data *>(data);
 	cf->engine.shutdown();
 	join_init_thread(cf);
+	/* Model load can finish after the first shutdown and start the decode
+	 * thread. Stop it again so no callback outlives the caption writer. */
+	cf->engine.shutdown();
+	cf->caption_writer.shutdown();
 	delete cf;
 }
 
@@ -324,8 +316,7 @@ static void start_asr_async(caption_filter_data *cf)
 		AsrConfig config = snapshot;
 
 		if (!find_model_files(model_dir, config)) {
-			blog(LOG_WARNING, "[CaptionFlow] Cannot find model files in: %s",
-			     model_dir.c_str());
+			blog(LOG_WARNING, "[CaptionFlow] Cannot find model files in: %s", model_dir.c_str());
 			cf->init_in_progress.store(false, std::memory_order_release);
 			return;
 		}
@@ -337,13 +328,12 @@ static void start_asr_async(caption_filter_data *cf)
 			config.hotwords_score = kHotwordsScore;
 		}
 
-		cf->engine.set_result_callback(
-			[cf](const std::string &text, bool is_partial, float token_age_sec) {
-				on_asr_result(cf, text, is_partial, token_age_sec);
-			});
+		cf->engine.set_result_callback([cf](const std::string &text, bool is_partial, float token_age_sec) {
+			on_asr_result(cf, text, is_partial, token_age_sec);
+		});
 
-		blog(LOG_INFO, "[CaptionFlow] Loading model from: %s (hotwords: %s)",
-		     model_dir.c_str(), has_hotwords ? "enabled" : "disabled");
+		blog(LOG_INFO, "[CaptionFlow] Loading model from: %s (hotwords: %s)", model_dir.c_str(),
+		     has_hotwords ? "enabled" : "disabled");
 
 		if (!cf->engine.init(config)) {
 			blog(LOG_WARNING, "[CaptionFlow] Failed to initialize ASR engine");
@@ -352,8 +342,7 @@ static void start_asr_async(caption_filter_data *cf)
 		}
 
 		cf->init_in_progress.store(false, std::memory_order_release);
-		blog(LOG_INFO, "[CaptionFlow] ASR engine started (encoder=%s)",
-		     config.encoder_path.c_str());
+		blog(LOG_INFO, "[CaptionFlow] ASR engine started (encoder=%s)", config.encoder_path.c_str());
 	});
 }
 
@@ -377,19 +366,15 @@ static void caption_filter_update(void *data, obs_data_t *settings)
 		cf->subtitles.set_max_lines(new_max_lines);
 		cf->subtitles.set_clear_timeout_sec(new_clear_timeout);
 		cf->subtitles.set_partial_write_throttle_ms(kPartialWriteThrottleMs);
+		cf->caption_check_due_ms.store(0, std::memory_order_relaxed);
 	}
 
-	cf->mute_enabled.store(obs_data_get_bool(settings, S_ENABLE_MUTE),
-			       std::memory_order_release);
+	cf->mute_enabled.store(obs_data_get_bool(settings, S_ENABLE_MUTE), std::memory_order_release);
 	{
-		const auto raw_delay =
-			static_cast<uint32_t>(obs_data_get_int(settings, S_MUTE_DELAY_MS));
-		const auto raw_pad =
-			static_cast<uint32_t>(obs_data_get_int(settings, S_MUTE_PADDING_MS));
-		cf->mute_delay_ms.store(std::min(raw_delay, kMaxMuteDelayMs),
-					std::memory_order_release);
-		cf->mute_padding_ms.store(std::min(raw_pad, kMaxMutePaddingMs),
-					  std::memory_order_release);
+		const auto raw_delay = static_cast<uint32_t>(obs_data_get_int(settings, S_MUTE_DELAY_MS));
+		const auto raw_pad = static_cast<uint32_t>(obs_data_get_int(settings, S_MUTE_PADDING_MS));
+		cf->mute_delay_ms.store(std::min(raw_delay, kMaxMuteDelayMs), std::memory_order_release);
+		cf->mute_padding_ms.store(std::min(raw_pad, kMaxMutePaddingMs), std::memory_order_release);
 	}
 
 	bool need_restart = false;
@@ -397,12 +382,9 @@ static void caption_filter_update(void *data, obs_data_t *settings)
 	{
 		std::lock_guard<std::mutex> lk(cf->settings_mutex);
 		mute_file_changed = (new_mute_file != cf->mute_words_file);
-		need_restart = (new_model_dir != cf->model_dir) ||
-			       (new_threads != cf->num_threads) ||
-			       (new_provider != cf->provider) ||
-			       (new_enable_ep != cf->enable_endpoint) ||
-			       (new_rule2 != cf->rule2_silence) ||
-			       mute_file_changed;
+		need_restart = (new_model_dir != cf->model_dir) || (new_threads != cf->num_threads) ||
+			       (new_provider != cf->provider) || (new_enable_ep != cf->enable_endpoint) ||
+			       (new_rule2 != cf->rule2_silence) || mute_file_changed;
 
 		cf->model_dir = new_model_dir;
 		cf->num_threads = new_threads;
@@ -461,8 +443,7 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 
 	cf->current_sample_rate.store(sample_rate, std::memory_order_relaxed);
 	cf->current_channels.store(channels, std::memory_order_relaxed);
-	const uint64_t current_frame_start =
-		cf->total_audio_frames.load(std::memory_order_acquire);
+	const uint64_t current_frame_start = cf->total_audio_frames.load(std::memory_order_acquire);
 	cf->total_audio_frames.fetch_add(audio->frames, std::memory_order_release);
 
 	/* ---- Downmix to mono for ASR ---- */
@@ -470,20 +451,27 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 		cf->mono_buf.resize(std::max<size_t>(4096, audio->frames));
 
 	float *mono = cf->mono_buf.data();
-	std::memset(mono, 0, audio->frames * sizeof(float));
-
+	const uint32_t frames = audio->frames;
 	if (channels == 1 && audio->data[0]) {
-		std::memcpy(mono, audio->data[0], audio->frames * sizeof(float));
+		std::memcpy(mono, audio->data[0], frames * sizeof(float));
+	} else if (channels == 2 && audio->data[0] && audio->data[1]) {
+		const float *left = reinterpret_cast<const float *>(audio->data[0]);
+		const float *right = reinterpret_cast<const float *>(audio->data[1]);
+		for (uint32_t i = 0; i < frames; i++)
+			mono[i] = 0.5f * (left[i] + right[i]);
+	} else if (channels == 0) {
+		std::memset(mono, 0, frames * sizeof(float));
 	} else {
+		std::memset(mono, 0, frames * sizeof(float));
 		for (size_t ch = 0; ch < channels; ch++) {
 			if (!audio->data[ch])
 				continue;
-			auto *src = reinterpret_cast<float *>(audio->data[ch]);
-			for (uint32_t i = 0; i < audio->frames; i++)
+			const float *src = reinterpret_cast<const float *>(audio->data[ch]);
+			for (uint32_t i = 0; i < frames; i++)
 				mono[i] += src[i];
 		}
 		const float inv = 1.0f / static_cast<float>(channels);
-		for (uint32_t i = 0; i < audio->frames; i++)
+		for (uint32_t i = 0; i < frames; i++)
 			mono[i] *= inv;
 	}
 
@@ -501,38 +489,37 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 		const uint64_t out_frame_start =
 			(current_frame_start > delay_frames) ? current_frame_start - delay_frames : 0;
 
-		if (cf->chunk_mute_flags.size() < audio->frames)
-			cf->chunk_mute_flags.resize(std::max<size_t>(4096, audio->frames));
-		std::fill_n(cf->chunk_mute_flags.begin(), audio->frames, static_cast<uint8_t>(0));
 		bool any_beep = false;
-
 		{
 			std::lock_guard<std::mutex> lk(cf->mute_intervals_mutex);
-			auto it = cf->mute_intervals.begin();
-			while (it != cf->mute_intervals.end()) {
-				if (it->end_frame < out_frame_start)
-					it = cf->mute_intervals.erase(it);
-				else
-					++it;
-			}
+			cf->mute_intervals.erase(std::remove_if(cf->mute_intervals.begin(), cf->mute_intervals.end(),
+								[&](const MuteInterval &interval) {
+									return interval.end_frame < out_frame_start;
+								}),
+						 cf->mute_intervals.end());
 
-			for (const auto &interval : cf->mute_intervals) {
-				const uint64_t start_idx =
-					(interval.start_frame > out_frame_start)
-						? interval.start_frame - out_frame_start
-						: 0;
-				const uint64_t end_idx =
-					(interval.end_frame >= out_frame_start)
-						? interval.end_frame - out_frame_start
-						: 0;
+			if (!cf->mute_intervals.empty()) {
+				if (cf->chunk_mute_flags.size() < audio->frames)
+					cf->chunk_mute_flags.resize(std::max<size_t>(4096, audio->frames));
+				std::fill_n(cf->chunk_mute_flags.begin(), audio->frames, static_cast<uint8_t>(0));
 
-				if (start_idx < audio->frames) {
-					const size_t fill_end = std::min<size_t>(
-						audio->frames, static_cast<size_t>(end_idx) + 1);
-					for (size_t i = start_idx; i < fill_end; i++) {
-						cf->chunk_mute_flags[i] = 1;
-						any_beep = true;
-					}
+				for (const auto &interval : cf->mute_intervals) {
+					const uint64_t start_idx = (interval.start_frame > out_frame_start)
+									   ? interval.start_frame - out_frame_start
+									   : 0;
+					const uint64_t end_idx = (interval.end_frame >= out_frame_start)
+									 ? interval.end_frame - out_frame_start
+									 : 0;
+					if (start_idx >= audio->frames)
+						continue;
+					const size_t fill_end =
+						std::min<size_t>(audio->frames, static_cast<size_t>(end_idx) + 1);
+					if (fill_end <= start_idx)
+						continue;
+					std::fill(cf->chunk_mute_flags.begin() + static_cast<std::ptrdiff_t>(start_idx),
+						  cf->chunk_mute_flags.begin() + static_cast<std::ptrdiff_t>(fill_end),
+						  static_cast<uint8_t>(1));
+					any_beep = true;
 				}
 			}
 		}
@@ -548,9 +535,9 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 			beep_vol = std::clamp(beep_vol, kBeepVolumeMin, kBeepVolumeMax);
 
 			if (!cf->had_beep_last_chunk) {
-				info("Adaptive beep: F0=%.2fHz -> %.2fHz, RMS=%.4f -> %.2f",
-				     static_cast<double>(f0), static_cast<double>(beep_freq),
-				     static_cast<double>(rms), static_cast<double>(beep_vol));
+				info("Adaptive beep: F0=%.2fHz -> %.2fHz, RMS=%.4f -> %.2f", static_cast<double>(f0),
+				     static_cast<double>(beep_freq), static_cast<double>(rms),
+				     static_cast<double>(beep_vol));
 			}
 			cf->had_beep_last_chunk = true;
 			cf->beep.set_params(sample_rate, beep_freq, beep_vol);
@@ -560,11 +547,12 @@ static struct obs_audio_data *caption_filter_audio(void *data, struct obs_audio_
 			cf->had_beep_last_chunk = false;
 		}
 
+		static const std::vector<uint8_t> kNoMute;
 		cf->delay_buf.process(reinterpret_cast<float **>(audio->data), audio->frames,
-				      cf->chunk_mute_flags, cf->beep);
+				      any_beep ? cf->chunk_mute_flags : kNoMute, cf->beep);
 	}
 
-	maybe_write_caption_file(cf);
+	maybe_publish_subtitles(cf);
 	maybe_log_asr_stats(cf);
 	return audio;
 }
@@ -593,16 +581,14 @@ static obs_properties_t *caption_filter_properties(void *data)
 	UNUSED_PARAMETER(data);
 	obs_properties_t *props = obs_properties_create();
 
-	obs_properties_add_path(props, S_MODEL_DIR, MT_("ModelDir"),
-				OBS_PATH_DIRECTORY, nullptr, nullptr);
+	obs_properties_add_path(props, S_MODEL_DIR, MT_("ModelDir"), OBS_PATH_DIRECTORY, nullptr, nullptr);
 
 	/* Button that opens the model-download dialog. The callback writes the
 	 * resolved model path back into S_MODEL_DIR so the filter picks it up
 	 * via the normal `update` flow. */
 	obs_properties_add_button2(
 		props, "download_model_button", MT_("DownloadModel"),
-		[](obs_properties_t * /*props*/, obs_property_t * /*prop*/,
-		   void *button_data) -> bool {
+		[](obs_properties_t * /*props*/, obs_property_t * /*prop*/, void *button_data) -> bool {
 			std::string new_dir;
 			if (!show_model_download_dialog(nullptr, &new_dir))
 				return false;
@@ -618,33 +604,29 @@ static obs_properties_t *caption_filter_properties(void *data)
 		data);
 	obs_properties_add_int(props, S_NUM_THREADS, MT_("NumThreads"), 1, 8, 1);
 
-	obs_property_t *provider = obs_properties_add_list(
-		props, S_PROVIDER, MT_("Provider"),
-		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+	obs_property_t *provider = obs_properties_add_list(props, S_PROVIDER, MT_("Provider"), OBS_COMBO_TYPE_LIST,
+							   OBS_COMBO_FORMAT_STRING);
 	obs_property_list_add_string(provider, "CPU", "cpu");
 	obs_property_list_add_string(provider, "CUDA (NVIDIA GPU)", "cuda");
 	obs_property_list_add_string(provider, "DirectML (Any GPU)", "directml");
 
-	obs_properties_add_path(props, S_OUTPUT_FILE, MT_("OutputFile"),
-				OBS_PATH_FILE_SAVE, "Text (*.txt)", nullptr);
+	obs_properties_add_path(props, S_OUTPUT_FILE, MT_("OutputFile"), OBS_PATH_FILE_SAVE, "Text (*.txt)", nullptr);
 	obs_properties_add_int(props, S_MAX_LINES, MT_("MaxLines"), 1, 5, 1);
-	obs_property_t *timeout = obs_properties_add_float_slider(
-		props, S_CLEAR_TIMEOUT, MT_("ClearTimeout"), 1.0, 30.0, 0.5);
+	obs_property_t *timeout =
+		obs_properties_add_float_slider(props, S_CLEAR_TIMEOUT, MT_("ClearTimeout"), 1.0, 30.0, 0.5);
 	obs_property_float_set_suffix(timeout, " s");
 
 	obs_properties_add_bool(props, S_ENABLE_ENDPOINT, MT_("EnableEndpoint"));
-	obs_property_t *silence = obs_properties_add_float_slider(
-		props, S_RULE2_SILENCE, MT_("EndpointSilence"), 0.2, 5.0, 0.1);
+	obs_property_t *silence =
+		obs_properties_add_float_slider(props, S_RULE2_SILENCE, MT_("EndpointSilence"), 0.2, 5.0, 0.1);
 	obs_property_float_set_suffix(silence, " s");
 
 	obs_properties_add_bool(props, S_ENABLE_MUTE, MT_("EnableMute"));
-	obs_properties_add_path(props, S_MUTE_WORDS_FILE, MT_("MuteWordsFile"),
-				OBS_PATH_FILE, "Text (*.txt)", nullptr);
-	obs_property_t *delay = obs_properties_add_int_slider(
-		props, S_MUTE_DELAY_MS, MT_("MuteDelay"), 200, 2000, 50);
+	obs_properties_add_path(props, S_MUTE_WORDS_FILE, MT_("MuteWordsFile"), OBS_PATH_FILE, "Text (*.txt)", nullptr);
+	obs_property_t *delay = obs_properties_add_int_slider(props, S_MUTE_DELAY_MS, MT_("MuteDelay"), 200, 2000, 50);
 	obs_property_int_set_suffix(delay, " ms");
-	obs_property_t *padding = obs_properties_add_int_slider(
-		props, S_MUTE_PADDING_MS, MT_("MutePadding"), 100, 1000, 50);
+	obs_property_t *padding =
+		obs_properties_add_int_slider(props, S_MUTE_PADDING_MS, MT_("MutePadding"), 100, 1000, 50);
 	obs_property_int_set_suffix(padding, " ms");
 
 	return props;

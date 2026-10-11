@@ -1,11 +1,31 @@
 #include "audio-delay-buffer.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+namespace {
+
+constexpr int kSineTableSize = 1024;
+
+const float *sine_table()
+{
+	static const std::array<float, kSineTableSize> table = [] {
+		std::array<float, kSineTableSize> values{};
+		for (int i = 0; i < kSineTableSize; i++) {
+			const double phase = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(kSineTableSize);
+			values[static_cast<size_t>(i)] = static_cast<float>(std::sin(phase));
+		}
+		return values;
+	}();
+	return table.data();
+}
+
+} /* namespace */
 
 void BeepGenerator::set_params(uint32_t sample_rate, float freq, float volume)
 {
@@ -17,19 +37,25 @@ void BeepGenerator::set_params(uint32_t sample_rate, float freq, float volume)
 	}
 	freq_ = freq;
 	volume_ = volume;
-	phase_inc_ = 2.0 * M_PI * static_cast<double>(freq_) /
-		     static_cast<double>(sample_rate_);
+	phase_inc_ = 2.0 * M_PI * static_cast<double>(freq_) / static_cast<double>(sample_rate_);
 }
 
 float BeepGenerator::next()
 {
-	const float s = volume_ * static_cast<float>(std::sin(phase_));
+	const double scaled = phase_ * (static_cast<double>(kSineTableSize) / (2.0 * M_PI));
+	const int i0_raw = static_cast<int>(scaled);
+	const float frac = static_cast<float>(scaled - static_cast<double>(i0_raw));
+	const int i0 = i0_raw & (kSineTableSize - 1);
+	const int i1 = (i0 + 1) & (kSineTableSize - 1);
+	const float *table = sine_table();
+	const float s = table[i0] + frac * (table[i1] - table[i0]);
+
 	phase_ += phase_inc_;
 	/* Normalize phase into [0, 2π) using fmod to remain correct even if
 	 * phase_inc_ exceeds 2π (pathological freq/rate combo). */
 	if (phase_ >= 2.0 * M_PI)
 		phase_ = std::fmod(phase_, 2.0 * M_PI);
-	return s;
+	return volume_ * s;
 }
 
 void AudioDelayBuffer::reset()
@@ -52,8 +78,7 @@ void AudioDelayBuffer::configure(uint32_t sample_rate, size_t channels, uint32_t
 	channels_ = channels;
 	delay_ms_ = delay_ms;
 
-	const size_t delay_samples =
-		static_cast<size_t>(sample_rate) * delay_ms / 1000;
+	const size_t delay_samples = static_cast<size_t>(sample_rate) * delay_ms / 1000;
 	delay_frames_ = delay_samples;
 	const size_t total = delay_samples * channels;
 	buf_.assign(total, 0.0f);
@@ -61,8 +86,8 @@ void AudioDelayBuffer::configure(uint32_t sample_rate, size_t channels, uint32_t
 	filled_ = 0;
 }
 
-void AudioDelayBuffer::process(float **channel_data, uint32_t frames,
-			       const std::vector<uint8_t> &mute_flags, BeepGenerator &beep)
+void AudioDelayBuffer::process(float **channel_data, uint32_t frames, const std::vector<uint8_t> &mute_flags,
+			       BeepGenerator &beep)
 {
 	if (!is_configured())
 		return;

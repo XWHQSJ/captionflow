@@ -45,4 +45,5 @@ private:
 	mutable std::mutex mutex_;
 	std::vector<Word> words_;
 	std::string hotwords_buf_;
+	mutable std::string match_scratch_; /* reused lowercased haystack, mutex_ */
 };

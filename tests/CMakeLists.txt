@@ -15,8 +15,10 @@ set(_CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-ring-buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-analyzer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-delay-buffer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/caption-file-writer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/mute-word-list.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/model-finder.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/rate-decimator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/subtitle-manager.cpp
 )
 
@@ -31,6 +33,8 @@ add_executable(captionflow-tests
   audio-analyzer-test.cpp
   audio-delay-buffer-test.cpp
   model-finder-test.cpp
+  rate-decimator-test.cpp
+  caption-file-writer-test.cpp
 )
 
 target_include_directories(captionflow-tests PRIVATE
