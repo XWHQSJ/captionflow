@@ -1,6 +1,7 @@
 #include "audio-analyzer.h"
 #include "test-framework.h"
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -68,6 +69,33 @@ TEST(AudioAnalyzer, ReconfiguresOnSampleRateChange)
 	a.feed(buf16.data(), buf16.size(), 16000);
 	/* Should not crash; rms should reflect recent signal. */
 	EXPECT_GT(a.get_rms(), 0.0f);
+}
+
+void feed_chunks(AudioAnalyzer &analyzer, const std::vector<float> &buf, uint32_t sample_rate)
+{
+	constexpr size_t kChunk = 480;
+	for (size_t offset = 0; offset < buf.size(); offset += kChunk) {
+		const size_t n = std::min(kChunk, buf.size() - offset);
+		analyzer.feed(buf.data() + offset, n, sample_rate);
+	}
+}
+
+TEST(AudioAnalyzer, DetectsLowPitch)
+{
+	AudioAnalyzer analyzer;
+	const uint32_t sr = 48000;
+	const float target_hz = 90.0f;
+	feed_chunks(analyzer, sine_wave(target_hz, sr, sr), sr);
+	EXPECT_NEAR(analyzer.get_freq(), target_hz, 12.0);
+}
+
+TEST(AudioAnalyzer, DetectsPitchAt44100)
+{
+	AudioAnalyzer analyzer;
+	const uint32_t sr = 44100;
+	const float target_hz = 210.0f;
+	feed_chunks(analyzer, sine_wave(target_hz, sr, sr), sr);
+	EXPECT_NEAR(analyzer.get_freq(), target_hz, 12.0);
 }
 
 TEST(AudioAnalyzer, ResetRestoresDefaults)

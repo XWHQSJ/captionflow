@@ -1,14 +1,16 @@
 #pragma once
 
 #include "audio-ring-buffer.h"
+#include "rate-decimator.h"
 
 #include <atomic>
-#include <memory>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 /* -------------------------------------------------------- */
 /* Configuration                                            */
@@ -49,8 +51,7 @@ struct AsrStats {
 	uint64_t decode_errors = 0;
 };
 
-using AsrResultCallback =
-	std::function<void(const std::string &text, bool is_partial, float token_age_sec)>;
+using AsrResultCallback = std::function<void(const std::string &text, bool is_partial, float token_age_sec)>;
 
 /* -------------------------------------------------------- */
 /* ASR Engine                                               */
@@ -66,9 +67,8 @@ public:
 	bool init(const AsrConfig &config);
 	void shutdown();
 
-	/* The callback is invoked from the internal decode thread, while the
-	 * engine still holds the onnx mutex. Implementations must NOT call
-	 * back into this engine from within the callback. */
+	/* The callback runs on the decode thread and does not hold the engine
+	 * mutex. Implementations must NOT call back into this engine. */
 	void set_result_callback(AsrResultCallback cb);
 
 	void feed_audio(const float *samples, size_t count, int sample_rate);
@@ -77,8 +77,14 @@ public:
 	AsrStats get_stats() const;
 	void reset_stats();
 
-	/* Pending samples still queued for decoding (backlog in ring buffer). */
-	size_t get_pending_samples() const { return ring_.size(); }
+	/* Samples still queued, counted in source-rate frames. After 48 kHz
+	 * input is decimated, the ring stores 16 kHz audio; this scales the
+	 * backlog back so callers can subtract it from an OBS frame clock. */
+	size_t get_pending_samples() const
+	{
+		return queued_input_frames(ring_.size(), input_sample_rate_.load(std::memory_order_relaxed),
+					   source_sample_rate_.load(std::memory_order_relaxed));
+	}
 
 	/* Deprecated: retained for backward compatibility. Prefer
 	 * get_pending_samples() which is less ambiguous with "capacity". */
@@ -93,7 +99,15 @@ private:
 	std::unique_ptr<Impl> impl_;
 
 	AudioRingBuffer ring_;
+	/* Rate of samples stored in the ring and passed to sherpa-onnx. */
 	std::atomic<int> source_sample_rate_{48000};
+	/* Caller rate, before decimation. */
+	std::atomic<int> input_sample_rate_{48000};
+	std::atomic<int> target_sample_rate_{16000};
+
+	RateDecimator decimator_;         /* audio thread only */
+	std::vector<float> resample_buf_; /* audio thread only */
+	int active_input_rate_ = 0;       /* audio thread only */
 
 	std::thread decode_thread_;
 	std::atomic<bool> running_{false};

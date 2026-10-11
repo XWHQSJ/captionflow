@@ -54,13 +54,11 @@ int count_substr(const std::string &haystack, const std::string &needle, bool re
 	while ((pos = haystack.find(needle, pos)) != std::string::npos) {
 		bool ok = true;
 		if (require_word_boundary) {
-			const bool left_boundary =
-				(pos == 0) ||
-				!is_ascii_alnum(static_cast<unsigned char>(haystack[pos - 1]));
+			const bool left_boundary = (pos == 0) ||
+						   !is_ascii_alnum(static_cast<unsigned char>(haystack[pos - 1]));
 			const size_t after = pos + needle.size();
-			const bool right_boundary =
-				(after >= haystack.size()) ||
-				!is_ascii_alnum(static_cast<unsigned char>(haystack[after]));
+			const bool right_boundary = (after >= haystack.size()) ||
+						    !is_ascii_alnum(static_cast<unsigned char>(haystack[after]));
 			ok = left_boundary && right_boundary;
 		}
 		if (ok) {
@@ -136,9 +134,9 @@ int MuteWordList::count_matches(const std::string &text) const
 	std::lock_guard<std::mutex> lk(mutex_);
 	if (words_.empty())
 		return 0;
-	std::string lower = text;
-	to_lower_in_place(lower);
-	return count_matches_locked(lower);
+	match_scratch_.assign(text);
+	to_lower_in_place(match_scratch_);
+	return count_matches_locked(match_scratch_);
 }
 
 std::string MuteWordList::get_hotwords_buf() const

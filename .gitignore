@@ -8,6 +8,10 @@ cmake-build-*/
 !.github/actions/build-*/
 !.github/actions/build-*/**
 
+# Format runners called by the check-format workflow (build-* would hide them).
+!build-aux/
+!build-aux/**
+
 # Dependency cache populated by buildspec.cmake
 .deps/
 

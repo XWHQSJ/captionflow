@@ -13,12 +13,15 @@ include(defaults)
 include(helpers)
 
 # Core sources (no OBS / no sherpa-onnx linkage) — reused for tests too.
-set(_CORE_SOURCES
+set(
+  _CORE_SOURCES
   src/audio-ring-buffer.cpp
   src/audio-analyzer.cpp
   src/audio-delay-buffer.cpp
+  src/caption-file-writer.cpp
   src/mute-word-list.cpp
   src/model-finder.cpp
+  src/rate-decimator.cpp
   src/subtitle-manager.cpp
 )
 
@@ -26,12 +29,7 @@ set(_CORE_SOURCES
 # generated automatically by obs-plugintemplate's helpers_common.cmake from
 # src/plugin-support.c.in and linked in as the `plugin-support` target. We
 # must not add it here.
-set(_PLUGIN_SOURCES
-  src/asr-engine.cpp
-  src/caption-filter.cpp
-  src/model-downloader.cpp
-  src/plugin-main.cpp
-)
+set(_PLUGIN_SOURCES src/asr-engine.cpp src/caption-filter.cpp src/model-downloader.cpp src/plugin-main.cpp)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
@@ -58,33 +56,35 @@ endif()
 
 # ---- sherpa-onnx (downloaded via buildspec) ----
 # `${CMAKE_SOURCE_DIR}/.deps/sherpa-onnx-${OS_LABEL}/` contains include/ and lib/.
-find_library(SHERPA_ONNX_LIB sherpa-onnx-c-api
-  PATHS
-    "${CMAKE_SOURCE_DIR}/.deps/sherpa-onnx/lib"
-    "${CMAKE_SOURCE_DIR}/deps/sherpa-onnx/lib"
+find_library(
+  SHERPA_ONNX_LIB
+  sherpa-onnx-c-api
+  PATHS "${CMAKE_SOURCE_DIR}/.deps/sherpa-onnx/lib" "${CMAKE_SOURCE_DIR}/deps/sherpa-onnx/lib"
   NO_DEFAULT_PATH
 )
-find_path(SHERPA_ONNX_INCLUDE sherpa-onnx/c-api/c-api.h
-  PATHS
-    "${CMAKE_SOURCE_DIR}/.deps/sherpa-onnx/include"
-    "${CMAKE_SOURCE_DIR}/deps/sherpa-onnx/include"
+find_path(
+  SHERPA_ONNX_INCLUDE
+  sherpa-onnx/c-api/c-api.h
+  PATHS "${CMAKE_SOURCE_DIR}/.deps/sherpa-onnx/include" "${CMAKE_SOURCE_DIR}/deps/sherpa-onnx/include"
   NO_DEFAULT_PATH
 )
 if(NOT SHERPA_ONNX_LIB OR NOT SHERPA_ONNX_INCLUDE)
-  message(FATAL_ERROR
+  message(
+    FATAL_ERROR
     "sherpa-onnx not found. Run buildspec fetch or place prebuilt libs under "
-    ".deps/sherpa-onnx/{include,lib}/ for your platform.")
+    ".deps/sherpa-onnx/{include,lib}/ for your platform."
+  )
 endif()
 add_library(SherpaOnnx::CApi SHARED IMPORTED)
 if(WIN32)
-  set_target_properties(SherpaOnnx::CApi PROPERTIES
-    IMPORTED_IMPLIB "${SHERPA_ONNX_LIB}"
-    INTERFACE_INCLUDE_DIRECTORIES "${SHERPA_ONNX_INCLUDE}"
+  set_target_properties(
+    SherpaOnnx::CApi
+    PROPERTIES IMPORTED_IMPLIB "${SHERPA_ONNX_LIB}" INTERFACE_INCLUDE_DIRECTORIES "${SHERPA_ONNX_INCLUDE}"
   )
 else()
-  set_target_properties(SherpaOnnx::CApi PROPERTIES
-    IMPORTED_LOCATION "${SHERPA_ONNX_LIB}"
-    INTERFACE_INCLUDE_DIRECTORIES "${SHERPA_ONNX_INCLUDE}"
+  set_target_properties(
+    SherpaOnnx::CApi
+    PROPERTIES IMPORTED_LOCATION "${SHERPA_ONNX_LIB}" INTERFACE_INCLUDE_DIRECTORIES "${SHERPA_ONNX_INCLUDE}"
   )
 endif()
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SherpaOnnx::CApi)
@@ -104,35 +104,36 @@ if(APPLE)
   file(GLOB _sherpa_dylibs "${_SHERPA_LIB_DIR}/*.dylib")
   foreach(_dylib ${_sherpa_dylibs})
     get_filename_component(_name_only "${_dylib}" NAME)
-    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dylib}"
+    add_custom_command(
+      TARGET ${CMAKE_PROJECT_NAME}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks"
+      COMMAND
+        ${CMAKE_COMMAND} -E copy_if_different "${_dylib}"
         "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}"
       # Strip vendor signature before patching install name, then re-sign
       # ad-hoc so the bundled dylib still loads under SIP.
-      COMMAND codesign --remove-signature
-        "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}"
-        || true
-      COMMAND install_name_tool -id "@rpath/${_name_only}"
-        "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}"
-        || true
-      COMMAND codesign --force --sign -
-        "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}"
-        || true
+      COMMAND
+        codesign --remove-signature "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}" ||
+        true
+      COMMAND
+        install_name_tool -id "@rpath/${_name_only}"
+        "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}" || true
+      COMMAND
+        codesign --force --sign - "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/${_name_only}" || true
       VERBATIM
     )
   endforeach()
-  set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY
-    BUILD_RPATH "@loader_path/../Frameworks")
+  set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY BUILD_RPATH "@loader_path/../Frameworks")
 elseif(WIN32)
   # Windows: copy DLLs next to the plugin's .dll so they resolve via PATH.
   file(GLOB _sherpa_dlls "${_SHERPA_LIB_DIR}/*.dll")
   foreach(_dll ${_sherpa_dlls})
     get_filename_component(_name_only "${_dll}" NAME)
-    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${_dll}" "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${_name_only}"
+    add_custom_command(
+      TARGET ${CMAKE_PROJECT_NAME}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${_name_only}"
       VERBATIM
     )
   endforeach()
@@ -141,7 +142,8 @@ endif()
 # ---- Tests (offline, no OBS/sherpa-onnx) ----
 if(ENABLE_TESTS)
   enable_testing()
-  add_executable(captionflow-tests
+  add_executable(
+    captionflow-tests
     ${_CORE_SOURCES}
     tests/test-main.cpp
     tests/subtitle-manager-test.cpp
@@ -150,9 +152,10 @@ if(ENABLE_TESTS)
     tests/audio-analyzer-test.cpp
     tests/audio-delay-buffer-test.cpp
     tests/model-finder-test.cpp
+    tests/rate-decimator-test.cpp
+    tests/caption-file-writer-test.cpp
   )
-  target_include_directories(captionflow-tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+  target_include_directories(captionflow-tests PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
   if(NOT WIN32)
     target_link_libraries(captionflow-tests PRIVATE pthread)
   endif()
