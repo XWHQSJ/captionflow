@@ -11,7 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #   cmake --build build-tests -j
 #   ctest --test-dir build-tests --output-on-failure
 
-set(_CORE_SOURCES
+set(
+  _CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-ring-buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-analyzer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/audio-delay-buffer.cpp
@@ -24,7 +25,8 @@ set(_CORE_SOURCES
 
 enable_testing()
 
-add_executable(captionflow-tests
+add_executable(
+  captionflow-tests
   ${_CORE_SOURCES}
   test-main.cpp
   subtitle-manager-test.cpp
@@ -37,10 +39,7 @@ add_executable(captionflow-tests
   caption-file-writer-test.cpp
 )
 
-target_include_directories(captionflow-tests PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../src
-  ${CMAKE_CURRENT_SOURCE_DIR}
-)
+target_include_directories(captionflow-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
   target_compile_options(captionflow-tests PRIVATE /W4 /utf-8 /permissive-)
