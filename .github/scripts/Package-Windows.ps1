@@ -49,6 +49,20 @@ function Package {
 
     $OutputName = "${ProductName}-${ProductVersion}-windows-${Target}"
 
+    # Build output DLLs are not automatically included by cmake --install.
+    # Verify every vendor runtime in the staging tree before publishing a ZIP.
+    $SherpaLibDir = "${ProjectRoot}/.deps/sherpa-onnx/lib"
+    if ( ! ( Test-Path -LiteralPath $SherpaLibDir ) ) {
+        $SherpaLibDir = "${ProjectRoot}/deps/sherpa-onnx/lib"
+    }
+    $VerifyArgs = @(
+        "-DPACKAGE_DIR=${ProjectRoot}/release/${Configuration}",
+        "-DSHERPA_LIB_DIR=${SherpaLibDir}",
+        "-DPLUGIN_NAME=${ProductName}",
+        '-P', "${ProjectRoot}/cmake/windows/verify-package.cmake"
+    )
+    Invoke-External cmake @VerifyArgs
+
     $RemoveArgs = @{
         ErrorAction = 'SilentlyContinue'
         Path = @(

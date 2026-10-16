@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Windows packages now install the sherpa-onnx and ONNX Runtime DLLs beside the plugin, avoiding missing-runtime load failures (issue #3). Packaging checks reject missing or mismatched runtime files.
+- Windows installation instructions now match the packaged `captionflow/bin/64bit` and `captionflow/data` layout under `%ProgramData%/obs-studio/plugins`.
+
 ### Changed
 - Caption files are written on a background thread. Partial results no longer stall the OBS audio callback or the ASR decode thread on disk, and a newer caption cannot be overwritten by an older one.
 - 48 kHz input is lowpass-decimated to 16 kHz before it enters the ASR queue, so the queue holds 4 seconds at the model rate and sherpa-onnx does not resample that stream again.
