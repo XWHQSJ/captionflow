@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-16
+
 ### Fixed
 - Windows packages now install the sherpa-onnx and ONNX Runtime DLLs beside the plugin, avoiding missing-runtime load failures (issue #3). Packaging checks reject missing or mismatched runtime files.
 - Windows installation instructions now match the packaged `captionflow/bin/64bit` and `captionflow/data` layout under `%ProgramData%/obs-studio/plugins`.
