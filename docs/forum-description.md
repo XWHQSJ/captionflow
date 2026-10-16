@@ -31,7 +31,7 @@ Linux users: the code compiles cleanly, we just aren't shipping builds yet — c
 
 Download from the [GitHub release](https://github.com/XWHQSJ/captionflow/releases/latest):
 
-- **Windows**: extract the ZIP, merge `obs-plugins\` and `data\obs-plugins\` into `%ProgramFiles%\obs-studio\`.
+- **Windows**: extract the ZIP and copy the entire `captionflow` folder into `%ProgramData%\obs-studio\plugins\` (create `plugins` if needed). Keep every bundled DLL in `captionflow\bin\64bit\` and the `data` folder alongside `bin`.
 - **macOS**: open the `.pkg`; it installs into the user OBS Studio plugin directory.
 
 The current packages are unsigned. Download them only from the GitHub release page and verify the Sigstore build provenance attestation before installing.

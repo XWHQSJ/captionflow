@@ -126,17 +126,8 @@ if(APPLE)
   endforeach()
   set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY BUILD_RPATH "@loader_path/../Frameworks")
 elseif(WIN32)
-  # Windows: copy DLLs next to the plugin's .dll so they resolve via PATH.
-  file(GLOB _sherpa_dlls "${_SHERPA_LIB_DIR}/*.dll")
-  foreach(_dll ${_sherpa_dlls})
-    get_filename_component(_name_only "${_dll}" NAME)
-    add_custom_command(
-      TARGET ${CMAKE_PROJECT_NAME}
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${_name_only}"
-      VERBATIM
-    )
-  endforeach()
+  include(cmake/windows/sherpa-runtime.cmake)
+  install_sherpa_windows_runtime(${CMAKE_PROJECT_NAME} "${_SHERPA_LIB_DIR}")
 endif()
 
 # ---- Tests (offline, no OBS/sherpa-onnx) ----

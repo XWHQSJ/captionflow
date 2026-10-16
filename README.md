@@ -86,8 +86,9 @@ Requires OBS Studio 31.0+.
 1. Head to the [latest release](https://github.com/XWHQSJ/captionflow/releases/latest) and grab:
    - Windows: `captionflow-<version>-windows-x64.zip`
    - macOS: `captionflow-<version>-macos-universal.pkg`
-2. **Windows** — extract the zip, merge `obs-plugins\` and `data\obs-plugins\`
-   into `%ProgramFiles%\obs-studio\`.
+2. **Windows** — extract the ZIP and copy the entire `captionflow` folder into
+   `%ProgramData%\obs-studio\plugins\` (create `plugins` if needed). Keep all DLLs
+   together in `captionflow\bin\64bit\`, with locales in `captionflow\data\locale\`.
 3. **macOS** — double-click the `.pkg`; it installs into
    `~/Library/Application Support/obs-studio/plugins/`.
 4. Restart OBS.

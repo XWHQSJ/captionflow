@@ -66,9 +66,10 @@ Maintainer-only:
 
 1. Update `buildspec.json` `version` field.
 2. Update `CHANGELOG.md`: promote `[Unreleased]` to a dated section.
-3. Tag: `git tag -s v<X.Y.Z> -m "Release <X.Y.Z>"` and push.
-4. The `dispatch.yaml` workflow builds, packages, and uploads artifacts to the
-   corresponding GitHub Release.
+3. Tag: `git tag -s <X.Y.Z> -m "Release <X.Y.Z>"` and push.
+4. The `push.yaml` workflow builds, packages, and uploads artifacts to a draft
+   GitHub Release. Use an unprefixed version tag (for example, `0.2.1`).
+5. Verify the draft assets and checksums, then publish the release.
 
 ## License
 

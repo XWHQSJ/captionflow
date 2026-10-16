@@ -203,6 +203,12 @@ jobs:
           "pluginName=${ProductName}" >> $env:GITHUB_OUTPUT
           "pluginVersion=${ProductVersion}" >> $env:GITHUB_OUTPUT
 
+      - name: Test Windows Runtime Packaging
+        run: >-
+          cmake -DTEST_SOURCE_DIR="${{ github.workspace }}/tests"
+          -DTEST_BINARY_DIR="${{ runner.temp }}/captionflow-packaging-tests"
+          -P tests/windows-runtime-test.cmake
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:

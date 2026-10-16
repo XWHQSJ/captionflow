@@ -50,3 +50,10 @@ else()
 endif()
 
 add_test(NAME captionflow-tests COMMAND captionflow-tests)
+
+add_test(
+  NAME windows-runtime-packaging
+  COMMAND
+    ${CMAKE_COMMAND} "-DTEST_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}" "-DTEST_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}" -P
+    "${CMAKE_CURRENT_SOURCE_DIR}/windows-runtime-test.cmake"
+)
