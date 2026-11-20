@@ -29,14 +29,17 @@
         },
         "sherpa-onnx": {
             "version": "1.12.39",
+            "versions": {
+                "macos": "1.13.8"
+            },
             "baseUrl": "https://github.com/k2-fsa/sherpa-onnx/releases/download",
             "label": "sherpa-onnx ASR engine (prebuilt)",
             "assets": {
-                "macos": "sherpa-onnx-v1.12.39-osx-universal2-shared.tar.bz2",
+                "macos": "sherpa-onnx-v1.13.8-osx-universal2-shared.tar.bz2",
                 "windows-x64": "sherpa-onnx-v1.12.39-win-x64-shared-MD-Release.tar.bz2"
             },
             "hashes": {
-                "macos": "7af0827adb8c93c8a5ec33e206262542e2665afb3a82598f30d87135b1e34eb3",
+                "macos": "2249f97f10df7d828af1b0d10e3d1eeaa2198b60b9a999a7ed853c150181ccfd",
                 "windows-x64": "5005a74ba292584b8722c23545964150a070216baa11cc96d697d1f76680e4df"
             }
         }

@@ -124,7 +124,14 @@ if(APPLE)
       VERBATIM
     )
   endforeach()
-  set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY BUILD_RPATH "@loader_path/../Frameworks")
+  # Xcode disables CMake RPATH handling; retain host lookup and add bundled runtimes.
+  if(CMAKE_GENERATOR STREQUAL "Xcode")
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS
+                 "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks")
+  else()
+    set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY BUILD_RPATH "@loader_path/../Frameworks")
+    set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY INSTALL_RPATH "@loader_path/../Frameworks")
+  endif()
 elseif(WIN32)
   include(cmake/windows/sherpa-runtime.cmake)
   install_sherpa_windows_runtime(${CMAKE_PROJECT_NAME} "${_SHERPA_LIB_DIR}")
