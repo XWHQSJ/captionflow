@@ -59,9 +59,7 @@ function(_fetch_sherpa_onnx platform_label)
   if(NOT EXISTS "${archive_path}")
     message(STATUS "Downloading sherpa-onnx ${version} (${platform_label}): ${download_url}")
     if(expected_hash AND NOT expected_hash STREQUAL "")
-      file(DOWNLOAD "${download_url}" "${archive_path}"
-        STATUS download_status
-        EXPECTED_HASH SHA256=${expected_hash})
+      file(DOWNLOAD "${download_url}" "${archive_path}" STATUS download_status EXPECTED_HASH SHA256=${expected_hash})
     else()
       file(DOWNLOAD "${download_url}" "${archive_path}" STATUS download_status)
     endif()
@@ -109,10 +107,12 @@ function(_fetch_sherpa_onnx platform_label)
 
   file(REMOVE_RECURSE "${staging}")
   if(platform_label STREQUAL "macos")
-    if(NOT EXISTS "${dest}/include/sherpa-onnx/c-api/c-api.h" OR
-       NOT EXISTS "${dest}/lib/libsherpa-onnx-c-api.dylib" OR
-       NOT EXISTS "${dest}/lib/libsherpa-onnx-cxx-api.dylib" OR
-       NOT EXISTS "${dest}/lib/libonnxruntime.dylib")
+    if(
+      NOT EXISTS "${dest}/include/sherpa-onnx/c-api/c-api.h"
+      OR NOT EXISTS "${dest}/lib/libsherpa-onnx-c-api.dylib"
+      OR NOT EXISTS "${dest}/lib/libsherpa-onnx-cxx-api.dylib"
+      OR NOT EXISTS "${dest}/lib/libonnxruntime.dylib"
+    )
       message(FATAL_ERROR "Incomplete sherpa-onnx macOS archive: ${archive_path}")
     endif()
     file(WRITE "${pin_stamp}" "${pin_key}")
